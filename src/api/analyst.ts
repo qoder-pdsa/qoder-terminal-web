@@ -1,0 +1,42 @@
+import { ANALYST_URL } from "./config";
+
+/** 与 qoder-terminal-analyst/api/agent-event.schema.json 对齐。 */
+export type AgentEvent =
+  | { type: "thinking"; text: string }
+  | { type: "tool_call"; tool: string; args: Record<string, unknown> }
+  | { type: "tool_result"; tool: string; ok: boolean; summary?: string | null }
+  | { type: "open_panel"; command: string }
+  | { type: "answer"; markdown: string; citations: { title: string; url: string }[] }
+  | { type: "error"; message: string };
+
+/** 将 SSE 文本块拆分为事件；返回解析出的事件与未完成的剩余缓冲。 */
+export function splitSse(buffer: string): { events: AgentEvent[]; rest: string } {
+  const chunks = buffer.split("\n\n");
+  const rest = chunks.pop() ?? "";
+  const events = chunks
+    .map((chunk) => chunk.split("\n").find((line) => line.startsWith("data: ")))
+    .filter((line): line is string => line !== undefined)
+    .map((line) => JSON.parse(line.slice("data: ".length)) as AgentEvent);
+  return { events, rest };
+}
+
+export async function* ask(question: string, signal?: AbortSignal): AsyncGenerator<AgentEvent> {
+  const resp = await fetch(`${ANALYST_URL}/v1/ask`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ question }),
+    signal,
+  });
+  if (!resp.ok || !resp.body) {
+    throw new Error(`HTTP ${resp.status}`);
+  }
+  const reader = resp.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return;
+    const { events, rest } = splitSse(buffer + value);
+    buffer = rest;
+    yield* events;
+  }
+}
