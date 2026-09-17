@@ -38,5 +38,12 @@
 | 启动 | `deploy.sh up` | 应用部署（不构建、不迁移） |
 | 健康检查 | `deploy.sh health` | 应用部署与健康检查 |
 | 部署后测试 | web repo `e2e`，`WEB_URL=http://<公网 IP>` 等 | 部署后测试 |
+| 查看日志 | `deploy.sh logs <service>` | 失败归因 |
+
+## 执行器访问
+
+执行器用户 `qoderworker` 通过内网 `ssh qoder-terminal-app deploy.sh <子命令>` 部署。
+部署机 `qtdeploy` 的 authorized_keys 使用强制命令 `deploy/ssh-gate.sh`（安装为 `/usr/local/bin/qt-ssh-gate`），
+只允许 deploy.sh 白名单子命令，不提供 shell、端口转发。
 
 服务启动时不会自动迁移数据库；迁移只能通过 `db-migrate` 执行。

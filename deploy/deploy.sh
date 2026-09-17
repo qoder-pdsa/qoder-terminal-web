@@ -9,6 +9,7 @@
 #   deploy.sh up              使用已构建镜像替换并启动服务（不构建、不迁移）
 #   deploy.sh health          健康检查，全部通过返回 0
 #   deploy.sh status          容器状态与当前部署版本
+#   deploy.sh logs <service>  最近 200 行服务日志（data/analyst/user/web/postgres）
 set -euo pipefail
 
 ROOT=${QT_ROOT:-/opt/qoder-terminal}
@@ -121,5 +122,6 @@ case "${1:-}" in
   up) cmd_up ;;
   health) cmd_health ;;
   status) cmd_status ;;
-  *) sed -n '2,12p' "$0"; exit 2 ;;
+  logs) shift; "${COMPOSE[@]}" logs --no-color --tail 200 "${1:?usage: deploy.sh logs <service>}" </dev/null ;;
+  *) sed -n '2,13p' "$0"; exit 2 ;;
 esac
