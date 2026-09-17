@@ -3,5 +3,5 @@ trigger: glob
 paths:
   - "src/**/*.tsx"
 ---
-- 函数组件 + hooks；不使用 class 组件与默认导出。
-- 状态更新用不可变写法（展开 / map），不直接修改数组或对象。
+- Use function components and hooks; no class components or default exports.
+- Update state immutably (spread / map); never mutate arrays or objects in place.

@@ -1,6 +1,6 @@
 import { DATA_URL } from "./config";
 
-/** 与 qoder-terminal-data/api/openapi.yaml Quote 对齐，数值均为十进制字符串。 */
+/** Mirrors Quote in qoder-terminal-data/api/openapi.yaml; numbers are decimal strings. */
 export interface Quote {
   symbol: string;
   price: string;

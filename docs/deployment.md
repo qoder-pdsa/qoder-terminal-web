@@ -1,49 +1,49 @@
-# 生产部署（阿里云香港）
+# Production Deployment (Alibaba Cloud Hong Kong)
 
-## 拓扑
+## Topology
 
-| 实例 | 角色 |
+| Instance | Role |
 |---|---|
-| `qoder-wonder-260917-app` | qoder-wonder（AutoWonder）平台 |
-| `qoder-wonder-260917-executor` | 数字人执行器；QA 通过内网 SSH 部署 |
-| `qoder-terminal-app` | Qoder Terminal：postgres + user + data + analyst + web（docker compose） |
+| `qoder-wonder-260917-app` | qoder-wonder (AutoWonder) platform |
+| `qoder-wonder-260917-executor` | Digital worker executors; QA deploys over private-network SSH |
+| `qoder-terminal-app` | Qoder Terminal: postgres + user + data + analyst + web (docker compose) |
 
-浏览器只访问 `qoder-terminal-app:80`，由 web 容器内的 nginx 网关分发：
+Browsers only reach `qoder-terminal-app:80`, where the nginx gateway inside the web container routes requests:
 
-| 路径 | 转发到 |
+| Path | Routed to |
 |---|---|
-| `/` | 前端静态页面 |
+| `/` | Frontend static files |
 | `/api/data/` | data:8081 |
-| `/api/analyst/` | analyst:8082（SSE，关闭缓冲） |
+| `/api/analyst/` | analyst:8082 (SSE, buffering disabled) |
 | `/api/user/` | user:8084 |
-| `/healthz` | 网关自身 |
+| `/healthz` | The gateway itself |
 
-## 目录与凭证
+## Directories and credentials
 
 ```
-/opt/qoder-terminal/src/<四个 repo>     # 部署检出目录（只读检出，禁止手工修改）
-/opt/qoder-terminal/backups/            # 数据库备份（700）
-/etc/qoder-terminal/qoder-terminal.env  # 凭证（600，不入库），格式见 deploy/qoder-terminal.env.example
+/opt/qoder-terminal/src/<four repos>    # deployment checkouts (read-only, never edit by hand)
+/opt/qoder-terminal/backups/            # database backups (700)
+/etc/qoder-terminal/qoder-terminal.env  # credentials (600, never committed); format in deploy/qoder-terminal.env.example
 ```
 
-## 部署步骤（`deploy/deploy.sh`，AutoWonder QA 数字人逐步调用）
+## Deployment steps (`deploy/deploy.sh`, called step by step by the AutoWonder QA digital worker)
 
-| 步骤 | 命令 | 对应 QA SDLC 步骤 |
+| Step | Command | QA SDLC step |
 |---|---|---|
-| 同步候选版本 | `deploy.sh sync <branch>` | 分支合并与部署准备 |
-| 构建镜像 | `deploy.sh build` | 分支合并与部署准备（写库前构建） |
-| 迁移状态 | `deploy.sh db-status` | 数据库变更预检 |
-| 备份 | `deploy.sh db-backup` | 数据库变更执行（执行前） |
-| 迁移 | `deploy.sh db-migrate` | 数据库变更执行 |
-| 启动 | `deploy.sh up` | 应用部署（不构建、不迁移） |
-| 健康检查 | `deploy.sh health` | 应用部署与健康检查 |
-| 部署后测试 | web repo `e2e`，`WEB_URL=http://<公网 IP>` 等 | 部署后测试 |
-| 查看日志 | `deploy.sh logs <service>` | 失败归因 |
+| Sync candidate version | `deploy.sh sync <branch>` | Branch merge and deployment preparation |
+| Build images | `deploy.sh build` | Branch merge and deployment preparation (build before database writes) |
+| Migration status | `deploy.sh db-status` | Database change pre-check |
+| Backup | `deploy.sh db-backup` | Database change execution (before executing) |
+| Migrate | `deploy.sh db-migrate` | Database change execution |
+| Start | `deploy.sh up` | Application deployment (no build, no migration) |
+| Health check | `deploy.sh health` | Application deployment and health check |
+| Post-deployment tests | web repo `e2e` with `WEB_URL=http://<public IP>` etc. | Post-deployment tests |
+| View logs | `deploy.sh logs <service>` | Failure attribution |
 
-## 执行器访问
+## Executor access
 
-执行器用户 `qoderworker` 通过内网 `ssh qoder-terminal-app deploy.sh <子命令>` 部署。
-部署机 `qtdeploy` 的 authorized_keys 使用强制命令 `deploy/ssh-gate.sh`（安装为 `/usr/local/bin/qt-ssh-gate`），
-只允许 deploy.sh 白名单子命令，不提供 shell、端口转发。
+The executor user `qoderworker` deploys over the private network with `ssh qoder-terminal-app deploy.sh <subcommand>`.
+The `qtdeploy` authorized_keys entry on the deployment host uses the forced command `deploy/ssh-gate.sh` (installed as `/usr/local/bin/qt-ssh-gate`),
+which only allows allowlisted deploy.sh subcommands, with no shell and no port forwarding.
 
-服务启动时不会自动迁移数据库；迁移只能通过 `db-migrate` 执行。
+Services never migrate the database on startup; migrations only run via `db-migrate`.

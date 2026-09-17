@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 依次运行四个 repo 的 lint + 单测，汇总结果
+# Run lint + tests for all four repos in turn and summarize the results
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 PARENT="$(dirname "$HERE")"
@@ -9,6 +9,6 @@ for repo in qoder-terminal-data qoder-terminal-analyst qoder-terminal-user qoder
   (cd "$PARENT/$repo" && make lint test) || failed+=("$repo")
 done
 if [ ${#failed[@]} -gt 0 ]; then
-  echo "失败: ${failed[*]}"; exit 1
+  echo "Failed: ${failed[*]}"; exit 1
 fi
-echo "全部通过"
+echo "All passed"

@@ -1,12 +1,12 @@
-# BL-01 · EMA 与 RSI 指标
+# BL-01 · EMA and RSI Indicators
 
 - **Repo**: qoder-terminal-data
-- **Depends on**: 无
-- **建议小队**: 快速交付
+- **Depends on**: none
+- **Squad**: Standard Automated Delivery
 
-## 验收标准
-- [ ] 契约：`/v1/indicators/{symbol}` 的 `kind` 枚举加入 `ema`、`rsi`
-- [ ] `indicators.EMA`：首个有效值为前 window 个收盘价的 SMA，之后按 `k = 2/(window+1)` 递推
-- [ ] `indicators.RSI`：Wilder 平滑，前 window 个位置为 nil，取值 0~100；全部相等时的约定写在注释并测试
-- [ ] table-driven 测试覆盖：空输入、window > len、window = 1
-- [ ] 全程 `money.Decimal`，无 float64；`make lint test` 通过
+## Acceptance criteria
+- [ ] Contract: add `ema` and `rsi` to the `kind` enum of `/v1/indicators/{symbol}`
+- [ ] `indicators.EMA`: the first valid value is the SMA of the first `window` closes, then recurses with `k = 2/(window+1)`
+- [ ] `indicators.RSI`: Wilder smoothing, nil for the first `window` positions, values within 0–100; the convention when all closes are equal is documented in a comment and tested
+- [ ] Table-driven tests cover empty input, window > len, and window = 1
+- [ ] `money.Decimal` throughout with no float64; `make lint test` passes

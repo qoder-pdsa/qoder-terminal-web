@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# SSH 强制命令：执行器（AutoWonder QA 数字人）只能调用 deploy.sh 的白名单子命令。
-# 安装：/usr/local/bin/qt-ssh-gate，authorized_keys 中 command="/usr/local/bin/qt-ssh-gate",restrict
+# SSH forced command: the executor (AutoWonder QA digital worker) may only call allowlisted deploy.sh subcommands.
+# Install as /usr/local/bin/qt-ssh-gate with command="/usr/local/bin/qt-ssh-gate",restrict in authorized_keys
 set -euo pipefail
 DEPLOY=/opt/qoder-terminal/src/qoder-terminal-web/deploy/deploy.sh
 read -r -a args <<< "${SSH_ORIGINAL_COMMAND:-}"
-# 允许 "deploy.sh <sub> [arg]" 或省略 deploy.sh
+# Accept "deploy.sh <sub> [arg]" or the subcommand without deploy.sh
 [ "${args[0]:-}" = "deploy.sh" ] && args=("${args[@]:1}")
 sub=${args[0]:-}; arg=${args[1]:-}
 case "$sub" in

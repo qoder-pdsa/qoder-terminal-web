@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# Qoder Terminal 生产部署入口（AutoWonder QA 数字人按步骤调用，每步独立、可重复执行）
+# Qoder Terminal production deployment entry point (called step by step by the AutoWonder QA digital worker; every step is independent and re-runnable)
 #
-#   deploy.sh sync <branch>   四个 repo 更新到 origin/<branch>，输出候选提交
-#   deploy.sh build           构建全部镜像（与启动分离），输出镜像摘要
-#   deploy.sh db-status       查看 Flyway 迁移记录（只读）
-#   deploy.sh db-backup       备份 PostgreSQL 到 /opt/qoder-terminal/backups
-#   deploy.sh db-migrate      执行 Flyway 迁移（仅数据库步骤调用）
-#   deploy.sh up              使用已构建镜像替换并启动服务（不构建、不迁移）
-#   deploy.sh health          健康检查，全部通过返回 0
-#   deploy.sh status          容器状态与当前部署版本
-#   deploy.sh logs <service>  最近 200 行服务日志（data/analyst/user/web/postgres）
+#   deploy.sh sync <branch>   update all four repos to origin/<branch> and print the candidate commits
+#   deploy.sh build           build all images (separate from startup) and print image digests
+#   deploy.sh db-status       show Flyway migration history (read-only)
+#   deploy.sh db-backup       back up PostgreSQL to /opt/qoder-terminal/backups
+#   deploy.sh db-migrate      run Flyway migrations (database step only)
+#   deploy.sh up              replace and start services from built images (no build, no migration)
+#   deploy.sh health          health checks; exits 0 only when all pass
+#   deploy.sh status          container status and currently deployed versions
+#   deploy.sh logs <service>  last 200 log lines of a service (data/analyst/user/web/postgres)
 set -euo pipefail
 
 ROOT=${QT_ROOT:-/opt/qoder-terminal}
@@ -27,9 +27,9 @@ cmd_sync() {
     if [ ! -d "$dir/.git" ]; then
       git clone -q "https://github.com/qoder-pdsa/$repo.git" "$dir"
     fi
-    # 部署目录只做只读检出：存在本地改动时拒绝覆盖
+    # Deployment directories are read-only checkouts: refuse to overwrite local changes
     if [ -n "$(git -C "$dir" status --porcelain)" ]; then
-      log "ERROR $repo 部署目录存在未提交改动，拒绝覆盖"; exit 1
+      log "ERROR $repo deployment directory has uncommitted changes; refusing to overwrite"; exit 1
     fi
     git -C "$dir" fetch -q origin "$branch"
     git -C "$dir" checkout -q --detach "origin/$branch"
@@ -42,7 +42,7 @@ cmd_build() {
   "${COMPOSE[@]}" images 2>/dev/null || docker images 'qoder-terminal/*' --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedSince}}'
 }
 
-# exec 一律从 /dev/null 读取 stdin：否则通过管道/heredoc 调用本脚本时，会吞掉调用方后续命令
+# exec always reads stdin from /dev/null; otherwise, when this script is driven by a pipe/heredoc, it swallows the caller's remaining commands
 psql_q() { "${COMPOSE[@]}" exec -T postgres psql -U qoder -d qoder -v ON_ERROR_STOP=1 -At -c "$1" </dev/null; }
 
 cmd_db_status() {
@@ -51,7 +51,7 @@ cmd_db_status() {
   if [ "$(psql_q "select to_regclass('qoder_user.flyway_schema_history') is not null")" = "t" ]; then
     psql_q "select version, description, success, installed_on from qoder_user.flyway_schema_history order by installed_rank"
   else
-    log "qoder_user schema 尚未初始化"
+    log "qoder_user schema is not initialized yet"
   fi
 }
 
@@ -80,11 +80,11 @@ wait_healthy() {
     [ "$("${COMPOSE[@]}" ps --format '{{.Health}}' "$1" 2>/dev/null)" = "healthy" ] && return 0
     sleep 2
   done
-  log "ERROR $1 未在 120 秒内就绪"; return 1
+  log "ERROR $1 did not become ready within 120 seconds"; return 1
 }
 
 check() {
-  # 服务启动需要时间（Java 约 15 秒）：每项最多重试 90 秒
+  # Services need time to start (Java takes ~15s): retry each check for up to 90 seconds
   local name=$1 url=$2 expect=$3 body=""
   for _ in $(seq 1 45); do
     if body=$(curl -fsS -m 10 "$url" 2>&1) && printf '%s' "$body" | grep -q "$expect"; then

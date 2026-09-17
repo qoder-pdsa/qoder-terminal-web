@@ -1,48 +1,48 @@
 # qoder-terminal-web
 
-Qoder Terminal 的 **Bloomberg 风格前端**（TypeScript + React + Vite），同时是整个项目的**入口 repo**：
-包含跨 repo 的 e2e、docker-compose、设计文档与 backlog。
+The **Bloomberg-style frontend** (TypeScript + React + Vite) for Qoder Terminal, and the **entry-point repo** of the project:
+it holds the cross-repo e2e tests, docker-compose, design docs, and backlog.
 
-## 项目全景
+## Project overview
 
-| Repo | 语言 | 职责 | 端口 |
+| Repo | Language | Responsibility | Port |
 |---|---|---|---|
-| `qoder-terminal-data` | Go | 港股行情 / K 线 / 资讯 / 指标（mock 或 Longbridge） | 8081 |
-| `qoder-terminal-analyst` | Python | AI 分析师（`ASK`） | 8082 |
-| `qoder-terminal-user` | Java | 登录、JWT、用户行为记录（PostgreSQL） | 8084 |
-| **`qoder-terminal-web`**（本 repo） | TypeScript | 终端 UI + e2e + 编排 | 5173 |
+| `qoder-terminal-data` | Go | Hong Kong quotes / candlesticks / news / indicators (mock or Longbridge) | 8081 |
+| `qoder-terminal-analyst` | Python | AI analyst (`ASK`) | 8082 |
+| `qoder-terminal-user` | Java | Login, JWT, user activity history (PostgreSQL) | 8084 |
+| **`qoder-terminal-web`** (this repo) | TypeScript | Terminal UI + e2e + orchestration | 5173 |
 
-四个 repo 需放在同级目录下：
+The four repos must be sibling directories:
 
 ```bash
 mkdir qoder-terminal && cd qoder-terminal
 for r in data analyst user web; do git clone git@github.com:qoder-pdsa/qoder-terminal-$r.git; done
 ```
 
-## 快速开始
+## Quick start
 
 ```bash
 make install
-./scripts/dev.sh                              # 同时启动三个服务（mock 数据）
-DATA_PROVIDER=longbridge ./scripts/dev.sh     # 真实港股行情
-make e2e-api && make e2e-ui                   # 服务启动后跑端到端
-./scripts/test-all.sh                         # 四个 repo 的 lint + 测试
-docker compose up --build                     # 含 PostgreSQL 与 user（自动执行迁移，仅限本地）
+./scripts/dev.sh                              # start data + analyst + web (mock data)
+DATA_PROVIDER=longbridge ./scripts/dev.sh     # live Hong Kong market data
+make e2e-api && make e2e-ui                   # end-to-end tests once services are up
+./scripts/test-all.sh                         # lint + tests for all four repos
+docker compose up --build                     # includes PostgreSQL and user (runs migrations automatically, local only)
 ```
 
-## 命令栏
+## Command bar
 
-| 输入 | 面板 | 状态 |
+| Input | Panel | Status |
 |---|---|---|
-| `700 Q` / `0700.HK Q` | 报价 | ✅ |
-| `ASK 对比腾讯和阿里` | AI 分析师（流式工具调用，自动开面板） | ✅ |
-| `700 GP` | K 线 + 均线 | 🚧 BL-02 |
-| `N` / `700 N` | 资讯 | 🚧 BL-08 |
-| `W` | 自选股 | 🚧 BL-04 |
+| `700 Q` / `0700.HK Q` | Quote | ✅ |
+| `ASK compare Tencent and Alibaba` | AI analyst (streams tool calls, opens panels automatically) | ✅ |
+| `700 GP` | Candlesticks + moving averages | 🚧 BL-02 |
+| `N` / `700 N` | News | 🚧 BL-08 |
+| `W` | Watchlist | 🚧 BL-04 |
 
-环境变量：`VITE_DATA_URL`（默认 `http://localhost:8081`）、`VITE_ANALYST_URL`（默认 `http://localhost:8082`）。
+Environment variables: `VITE_DATA_URL` (default `http://localhost:8081`) and `VITE_ANALYST_URL` (default `http://localhost:8082`).
 
-## 文档
-- [生产部署](docs/deployment.md)
-- [架构](docs/architecture.md) · [AutoWonder 工作流](docs/autowonder-workflow.md) · [演示脚本](docs/demo-script.md) · [Backlog](backlog/README.md)
-- 共享交付规则：[`shared-rules/`](shared-rules/)，修改后运行 `scripts/sync-rules.sh`
+## Docs
+- [Production deployment](docs/deployment.md)
+- [Architecture](docs/architecture.md) · [AutoWonder workflow](docs/autowonder-workflow.md) · [Demo script](docs/demo-script.md) · [Backlog](backlog/README.md)
+- Shared delivery rules: [`shared-rules/`](shared-rules/); run `scripts/sync-rules.sh` after editing

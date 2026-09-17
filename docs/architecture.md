@@ -1,19 +1,19 @@
-# 架构
+# Architecture
 
 ```mermaid
 flowchart LR
-  LB[(Longbridge OpenAPI<br/>港股行情 · K线 · 资讯)]
+  LB[(Longbridge OpenAPI<br/>HK quotes · candlesticks · news)]
 
   subgraph web[qoder-terminal-web · TS/React :5173]
-    UI[命令栏 + 面板] 
+    UI[Command bar + panels]
     E2E[e2e/ Playwright]
   end
   subgraph analyst[qoder-terminal-analyst · Python :8082]
-    AN[ASK 分析师<br/>规划 → 工具 → 结论]
+    AN[ASK analyst<br/>plan → tools → conclusion]
   end
   subgraph user[qoder-terminal-user · Java :8084]
-    AUTH[登录 / JWT / JWKS] --> PG[(PostgreSQL<br/>qoder_user)]
-    ACT[行为记录] --> PG
+    AUTH[Login / JWT / JWKS] --> PG[(PostgreSQL<br/>qoder_user)]
+    ACT[Activity history] --> PG
   end
   subgraph data[qoder-terminal-data · Go :8081]
     API[REST] --> P{Provider}
@@ -22,46 +22,46 @@ flowchart LR
     API --> IND[indicators]
   end
 
-  UI -- 登录 / 上报行为 --> AUTH
+  UI -- login / report activity --> AUTH
   UI -- REST --> API
   UI -- SSE /v1/ask --> AN
   AN -- tools --> API
   LBP --> LB
-  E2E -. 部署后验证 .-> UI & API & AN & AUTH
-  API -. JWKS 验签 BL-09 .-> AUTH
-  AN -. JWKS 验签 BL-09 .-> AUTH
+  E2E -. post-deployment verification .-> UI & API & AN & AUTH
+  API -. JWKS verification BL-09 .-> AUTH
+  AN -. JWKS verification BL-09 .-> AUTH
 ```
 
-## 契约归属
+## Contract ownership
 
-| 契约 | 维护方 | 消费方 |
+| Contract | Owner | Consumers |
 |---|---|---|
-| `qoder-terminal-data/api/openapi.yaml` | data | analyst、web |
+| `qoder-terminal-data/api/openapi.yaml` | data | analyst, web |
 | `qoder-terminal-analyst/api/openapi.yaml` + `agent-event.schema.json` | analyst | web |
-| `qoder-terminal-user/api/openapi.yaml` + JWT claims | user | data、analyst、web |
+| `qoder-terminal-user/api/openapi.yaml` + JWT claims | user | data, analyst, web |
 
-**谁提供接口，谁维护契约。** 跨 repo 需求永远先合入提供方的契约变更，消费方再跟进；web 的 `e2e/tests/contracts.api.spec.ts` 在部署后校验契约是否被真实遵守。
+**Whoever provides an API owns its contract.** Cross-repo requirements always merge the provider's contract change first, then consumers follow; web's `e2e/tests/contracts.api.spec.ts` verifies after deployment that the contracts are really honored.
 
-## 设计原则
+## Design principles
 
-| 原则 | 落地 |
+| Principle | Implementation |
 |---|---|
-| 价格不用浮点 | 契约用十进制字符串；Go `internal/money` 定点数；前端只展示不运算 |
-| 演示不翻车 | data 默认 `mock`，analyst 默认 `stub` LLM；真实行情一键切换 `DATA_PROVIDER=longbridge` |
-| 统一交付入口 | 每个 repo `make lint / test`，服务都有 `GET /health` |
-| 迁移与部署分离 | user 启动时不自动迁移；迁移只走 `make db-migrate`（AutoWonder QA 数据库步骤） |
-| 让 QoderCLI 读得懂 | 每个 repo 有 `AGENTS.md` + `.qoder/rules/`，共享规则由 `scripts/sync-rules.sh` 下发 |
+| No floating-point prices | Contracts use decimal strings; Go uses fixed-point `internal/money`; the frontend only displays |
+| Demos never break | data defaults to `mock`, analyst defaults to the `stub` LLM; switch to live data with `DATA_PROVIDER=longbridge` |
+| Standard delivery entry points | Every repo has `make lint / test`, every service has `GET /health` |
+| Migrations separate from deployment | user never migrates on startup; migrations only run via `make db-migrate` (AutoWonder QA database step) |
+| Readable by QoderCLI | Every repo has `AGENTS.md` + `.qoder/rules/`; shared rules are distributed by `scripts/sync-rules.sh` |
 
-## 市场与标的
+## Market and symbols
 
-- 默认市场港股，标的格式 `700.HK`；命令栏可简写 `700`、`0700`。
-- 演示标的：腾讯 `700.HK`、阿里 `9988.HK`、美团 `3690.HK`、小米 `1810.HK`、比亚迪 `1211.HK`、盈富基金 `2800.HK`。
-- 交易时段（北京时间）09:30–12:00、13:00–16:00，午休不动，演示请避开。
+- Hong Kong is the default market; the symbol format is `700.HK`, and the command bar accepts `700` or `0700`.
+- Demo symbols: Tencent `700.HK`, Alibaba `9988.HK`, Meituan `3690.HK`, Xiaomi `1810.HK`, BYD `1211.HK`, Tracker Fund `2800.HK`.
+- Trading hours (HKT) 09:30–12:00 and 13:00–16:00; prices do not move over lunch, so avoid it when demoing.
 
-## 已知环境坑
+## Known environment pitfalls
 
-| 现象 | 原因 | 处理 |
+| Symptom | Cause | Fix |
 |---|---|---|
-| analyst 调 data 返回 502 | httpx 读取 macOS 系统代理，把 localhost 请求转发出去 | 服务间客户端 `trust_env=False` |
-| data 连 Longbridge `i/o timeout`（198.18.x.x） | Clash fake-IP，Go 不读系统代理 | 设置 `HTTPS_PROXY=http://127.0.0.1:7897` |
-| Longbridge `401003 token expired` | Legacy access token 过期 | 用户中心重新生成，或改用 OAuth（SDK 自动刷新） |
+| analyst gets 502 calling data | httpx reads the macOS system proxy and routes localhost requests out | Service-to-service clients use `trust_env=False` |
+| data gets `i/o timeout` to Longbridge (198.18.x.x) | Clash fake-IP; Go does not read the system proxy | Set `HTTPS_PROXY=http://127.0.0.1:7897` |
+| Longbridge `401003 token expired` | The legacy access token expired | Regenerate it in the user center, or switch to OAuth (the SDK refreshes automatically) |

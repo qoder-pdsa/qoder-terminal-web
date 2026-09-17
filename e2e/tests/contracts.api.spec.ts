@@ -22,7 +22,7 @@ test("data: SMA series aligns with history", async ({ request }) => {
 });
 
 test("analyst → data: ASK streams tool calls and a cited answer", async ({ request }) => {
-  const resp = await request.post(`${urls.analyst}/v1/ask`, { data: { question: "分析一下腾讯" } });
+  const resp = await request.post(`${urls.analyst}/v1/ask`, { data: { question: "Analyze Tencent" } });
   expect(resp.ok()).toBeTruthy();
   const events = (await resp.text())
     .split("\n")

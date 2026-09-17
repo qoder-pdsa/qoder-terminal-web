@@ -36,7 +36,7 @@ export function App() {
           data-testid="command-input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="700 Q   |   9988.HK GP   |   ASK 对比腾讯和阿里最近表现"
+          placeholder="700 Q   |   9988.HK GP   |   ASK compare Tencent and Alibaba recently"
           autoFocus
         />
       </form>
@@ -51,7 +51,7 @@ export function App() {
           ) : (
             <section key={`empty-${i}`} className="panel empty" data-testid="empty-slot">
               <h2>PANEL {i + 1}</h2>
-              <p className="muted">EMPTY — 在上方输入命令打开面板，如 700 Q</p>
+              <p className="muted">EMPTY — type a command above to open a panel, e.g. 700 Q</p>
             </section>
           ),
         )}
