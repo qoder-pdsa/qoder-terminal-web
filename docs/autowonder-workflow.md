@@ -15,7 +15,7 @@ QoderCLI 自动加载每个 repo 的 `AGENTS.md` 与 `.qoder/rules/**/*.md`。
 
 ## 工作空间配置
 
-1. 新建工作空间 `Qoder Terminal`，关联三个 repo。
+1. 新建工作空间 `Qoder Terminal`，关联四个 repo。
 2. 用 `initialize-autowonder-harness` skill 初始化小队模板：
    - **标准自动化交付**（需求澄清、项目经理、全栈开发、代码评审、测试与部署）—— 跨 repo 的 epic
    - **快速交付**（快速开发 → 快速部署）—— 单 repo 小需求
@@ -30,4 +30,4 @@ QoderCLI 自动加载每个 repo 的 `AGENTS.md` 与 `.qoder/rules/**/*.md`。
 | 全栈开发（QoderCLI） | 基线 `make test` → TDD → `make lint test` → 提交交 CR | 各 repo `AGENTS.md` |
 | 代码评审 | 只读评审：契约一致性、浮点价格、错误处理、凭证 | `.qoder/rules/autowonder-delivery.md` |
 | 测试与部署 | 合并 → `docker compose up` → `/health` → `make e2e` → 交人工验收 | `docker-compose.yml`、`e2e/` |
-| 数据库变更步骤 | 不适用，证据中写明依据 | 同上 |
+| 数据库变更步骤 | 仅 user：备份 → `make db-migrate` → 核对 `flyway_schema_history`；其他 repo 不适用 | user `AGENTS.md` |

@@ -3,6 +3,7 @@
 TypeScript + React 19 + Vite。**消费方 repo**：
 - 数据契约 `../qoder-terminal-data/api/openapi.yaml`
 - 分析师契约 `../qoder-terminal-analyst/api/openapi.yaml`、`agent-event.schema.json`
+- 用户契约 `../qoder-terminal-user/api/openapi.yaml`
 
 同时是项目入口：`e2e/`、`docker-compose.yml`、`docs/`、`backlog/`、`shared-rules/`。
 

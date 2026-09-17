@@ -11,6 +11,10 @@ flowchart LR
   subgraph analyst[qoder-terminal-analyst · Python :8082]
     AN[ASK 分析师<br/>规划 → 工具 → 结论]
   end
+  subgraph user[qoder-terminal-user · Java :8084]
+    AUTH[登录 / JWT / JWKS] --> PG[(PostgreSQL<br/>qoder_user)]
+    ACT[行为记录] --> PG
+  end
   subgraph data[qoder-terminal-data · Go :8081]
     API[REST] --> P{Provider}
     P --> MOCK[mock]
@@ -18,11 +22,14 @@ flowchart LR
     API --> IND[indicators]
   end
 
+  UI -- 登录 / 上报行为 --> AUTH
   UI -- REST --> API
   UI -- SSE /v1/ask --> AN
   AN -- tools --> API
   LBP --> LB
-  E2E -. 部署后验证 .-> UI & API & AN
+  E2E -. 部署后验证 .-> UI & API & AN & AUTH
+  API -. JWKS 验签 BL-09 .-> AUTH
+  AN -. JWKS 验签 BL-09 .-> AUTH
 ```
 
 ## 契约归属
@@ -31,6 +38,7 @@ flowchart LR
 |---|---|---|
 | `qoder-terminal-data/api/openapi.yaml` | data | analyst、web |
 | `qoder-terminal-analyst/api/openapi.yaml` + `agent-event.schema.json` | analyst | web |
+| `qoder-terminal-user/api/openapi.yaml` + JWT claims | user | data、analyst、web |
 
 **谁提供接口，谁维护契约。** 跨 repo 需求永远先合入提供方的契约变更，消费方再跟进；web 的 `e2e/tests/contracts.api.spec.ts` 在部署后校验契约是否被真实遵守。
 
@@ -41,6 +49,7 @@ flowchart LR
 | 价格不用浮点 | 契约用十进制字符串；Go `internal/money` 定点数；前端只展示不运算 |
 | 演示不翻车 | data 默认 `mock`，analyst 默认 `stub` LLM；真实行情一键切换 `DATA_PROVIDER=longbridge` |
 | 统一交付入口 | 每个 repo `make lint / test`，服务都有 `GET /health` |
+| 迁移与部署分离 | user 启动时不自动迁移；迁移只走 `make db-migrate`（AutoWonder QA 数据库步骤） |
 | 让 QoderCLI 读得懂 | 每个 repo 有 `AGENTS.md` + `.qoder/rules/`，共享规则由 `scripts/sync-rules.sh` 下发 |
 
 ## 市场与标的

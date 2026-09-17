@@ -9,13 +9,14 @@ Qoder Terminal 的 **Bloomberg 风格前端**（TypeScript + React + Vite），�
 |---|---|---|---|
 | `qoder-terminal-data` | Go | 港股行情 / K 线 / 资讯 / 指标（mock 或 Longbridge） | 8081 |
 | `qoder-terminal-analyst` | Python | AI 分析师（`ASK`） | 8082 |
+| `qoder-terminal-user` | Java | 登录、JWT、用户行为记录（PostgreSQL） | 8084 |
 | **`qoder-terminal-web`**（本 repo） | TypeScript | 终端 UI + e2e + 编排 | 5173 |
 
-三个 repo 需放在同级目录下：
+四个 repo 需放在同级目录下：
 
 ```bash
 mkdir qoder-terminal && cd qoder-terminal
-for r in data analyst web; do git clone git@github.com:qoder-pdsa/qoder-terminal-$r.git; done
+for r in data analyst user web; do git clone git@github.com:qoder-pdsa/qoder-terminal-$r.git; done
 ```
 
 ## 快速开始
@@ -25,7 +26,8 @@ make install
 ./scripts/dev.sh                              # 同时启动三个服务（mock 数据）
 DATA_PROVIDER=longbridge ./scripts/dev.sh     # 真实港股行情
 make e2e-api && make e2e-ui                   # 服务启动后跑端到端
-./scripts/test-all.sh                         # 三个 repo 的 lint + 单测
+./scripts/test-all.sh                         # 四个 repo 的 lint + 测试
+docker compose up --build                     # 含 PostgreSQL 与 user（自动执行迁移，仅限本地）
 ```
 
 ## 命令栏

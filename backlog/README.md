@@ -10,3 +10,4 @@
 | [BL-06](BL-06-capital-flow.md) | 资金流向（港股特色） | data → analyst + web | 契约传播 + 并行 | **主推** |
 | [BL-07](BL-07-watch-agent.md) | 盯盘 agent | 全部 | agentic | 压轴 |
 | [BL-08](BL-08-news-panel.md) | N 新闻面板 | web | 单 repo | 快速交付 |
+| [BL-09](BL-09-login-and-auth.md) | 登录与全链路鉴权、用户行为记录 | user → data + analyst + web | 跨 4 repo 并行 | Java / Go / Python / TS 同时开工 |
