@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-/** 目标环境通过环境变量注入；QA 部署后指向验收环境。 */
+/** Target environment is injected via environment variables; QA points it at the acceptance environment after deployment. */
 export const urls = {
   data: process.env.DATA_URL ?? "http://localhost:8081",
   analyst: process.env.ANALYST_URL ?? "http://localhost:8082",

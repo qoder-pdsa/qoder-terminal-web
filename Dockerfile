@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-# 生产环境经网关同源访问后端；本地开发不传参时沿用 localhost 默认值
+# In production the backend is reached same-origin through the gateway; local builds without args keep the localhost defaults
 ARG VITE_DATA_URL
 ARG VITE_ANALYST_URL
 ENV VITE_DATA_URL=${VITE_DATA_URL} VITE_ANALYST_URL=${VITE_ANALYST_URL}

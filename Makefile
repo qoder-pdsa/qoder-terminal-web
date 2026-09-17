@@ -9,7 +9,7 @@ lint:
 	npm run lint
 build:
 	npm run build
-# 以下需要三个服务已启动（./scripts/dev.sh 或 make up）
+# The targets below require the services to be running (./scripts/dev.sh or make up)
 e2e:
 	npm run e2e
 e2e-api:

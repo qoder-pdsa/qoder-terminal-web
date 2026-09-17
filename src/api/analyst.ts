@@ -1,6 +1,6 @@
 import { ANALYST_URL } from "./config";
 
-/** 与 qoder-terminal-analyst/api/agent-event.schema.json 对齐。 */
+/** Mirrors qoder-terminal-analyst/api/agent-event.schema.json. */
 export type AgentEvent =
   | { type: "thinking"; text: string }
   | { type: "tool_call"; tool: string; args: Record<string, unknown> }
@@ -9,7 +9,7 @@ export type AgentEvent =
   | { type: "answer"; markdown: string; citations: { title: string; url: string }[] }
   | { type: "error"; message: string };
 
-/** 将 SSE 文本块拆分为事件；返回解析出的事件与未完成的剩余缓冲。 */
+/** Split an SSE text chunk into events; returns the parsed events and the unfinished remainder. */
 export function splitSse(buffer: string): { events: AgentEvent[]; rest: string } {
   const chunks = buffer.split("\n\n");
   const rest = chunks.pop() ?? "";

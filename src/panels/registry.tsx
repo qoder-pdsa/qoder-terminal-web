@@ -14,7 +14,7 @@ export function panelTitle(cmd: RunnableCommand): string {
   return cmd.kind === "ask" ? "ASK" : [cmd.symbol, cmd.code].filter(Boolean).join(" ");
 }
 
-/** 功能码 → 面板。新增面板只需在此处加分支。 */
+/** Function code → panel. Adding a panel only needs a new branch here. */
 export function renderPanel(cmd: RunnableCommand, ctx: PanelContext): ReactNode {
   if (cmd.kind === "ask") return <AskPanel question={cmd.question} onOpen={ctx.run} />;
   switch (cmd.code) {

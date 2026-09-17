@@ -1,6 +1,6 @@
-# 生产部署（阿里云 qoder-terminal-app）。由 deploy/deploy.sh 调用，勿直接手工 up。
-# 目录约定：/opt/qoder-terminal/src/<repo>，本文件位于 qoder-terminal-web/deploy/
-# 凭证：/etc/qoder-terminal/qoder-terminal.env（600，不入库）
+# Production deployment (Alibaba Cloud qoder-terminal-app). Invoked by deploy/deploy.sh; do not run `up` by hand.
+# Layout: /opt/qoder-terminal/src/<repo>; this file lives in qoder-terminal-web/deploy/
+# Credentials: /etc/qoder-terminal/qoder-terminal.env (mode 600, never committed)
 name: qoder-terminal
 
 x-env: &env
@@ -24,7 +24,7 @@ services:
       interval: 5s
       retries: 20
 
-  # 仅在数据库变更步骤显式执行：deploy.sh db-migrate（服务启动不会触发迁移）
+  # Run explicitly only in the database change step: deploy.sh db-migrate (starting services never migrates)
   user-migrate:
     <<: *env
     profiles: [migrate]

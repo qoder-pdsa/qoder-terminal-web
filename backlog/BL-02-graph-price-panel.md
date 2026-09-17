@@ -1,13 +1,13 @@
-# BL-02 · GP 价格图面板
+# BL-02 · GP Price Chart Panel
 
-用户输入 `700 GP`，看到日 K 线并叠加 SMA20 / SMA50。
+Typing `700 GP` shows daily candlesticks with SMA20 / SMA50 overlays.
 
-## BL-02-1 · web：K 线图面板
+## BL-02-1 · web: candlestick chart panel
 - **Repo**: qoder-terminal-web
-- **Depends on**: 无（data 已提供 `/v1/history`、`/v1/indicators`）
-- [ ] 新建 `GraphPanel.tsx` 并在 `registry.tsx` 替换占位；选用并说明图表库（建议 lightweight-charts）
-- [ ] 支持 `700 GP 6M` 形式的区间参数（parse 单测）
-- [ ] 价格字符串只在交给图表库时转换，集中在一个函数里并有单测
-- [ ] 涨跌配色放在 CSS 变量中可切换（默认红涨绿跌，符合内地观众习惯；港交所惯例为绿涨红跌）
-- [ ] loading / error / empty 三态；`data-testid="graph-panel"`
-- [ ] e2e：`700 GP` 后图表 canvas 可见
+- **Depends on**: none (data already provides `/v1/history` and `/v1/indicators`)
+- [ ] Add `GraphPanel.tsx` and replace the placeholder in `registry.tsx`; choose a chart library and explain why (lightweight-charts suggested)
+- [ ] Support a range argument such as `700 GP 6M` (with parse unit tests)
+- [ ] Price strings are converted only when handed to the chart library, in a single unit-tested function
+- [ ] Up/down colors are switchable CSS variables (default red-up/green-down for mainland audiences; HKEX convention is green-up/red-down)
+- [ ] loading / error / empty states; `data-testid="graph-panel"`
+- [ ] e2e: the chart canvas is visible after `700 GP`

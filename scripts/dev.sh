@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# 本地并行启动 data + analyst + web（要求三个 repo 是同级目录；Ctrl+C 全部退出）
-# DATA_PROVIDER=longbridge ./scripts/dev.sh 使用真实港股行情
+# Start data + analyst + web locally in parallel (repos must be sibling directories; Ctrl+C stops everything)
+# DATA_PROVIDER=longbridge ./scripts/dev.sh uses live Hong Kong market data
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
 PARENT="$(dirname "$HERE")"

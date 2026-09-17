@@ -1,12 +1,12 @@
-# BL-05 · 真实 LLM provider
+# BL-05 · Real LLM Provider
 
 - **Repo**: qoder-terminal-analyst
-- **Depends on**: 无
-- **建议小队**: 标准自动化交付
+- **Depends on**: none
+- **Squad**: Standard Automated Delivery
 
-## 验收标准
-- [ ] `llm/openai_compatible.py` 实现 `LLMProvider`：plan 使用 tool calling，summarize 输出 markdown
-- [ ] `LLM_BASE_URL` / `LLM_MODEL` / `LLM_API_KEY` 配置，可接百炼 Qwen 等 OpenAI 兼容接口
-- [ ] `LLM_PROVIDER=openai_compatible` 且缺少 key 时启动失败并给出明确错误
-- [ ] 单测用 `httpx.MockTransport` 模拟模型响应，含一次工具调用往返
-- [ ] 默认仍为 `stub`
+## Acceptance criteria
+- [ ] `llm/openai_compatible.py` implements `LLMProvider`: plan uses tool calling, summarize outputs Markdown
+- [ ] Configured via `LLM_BASE_URL` / `LLM_MODEL` / `LLM_API_KEY`, working with OpenAI-compatible APIs such as Alibaba Cloud Model Studio Qwen
+- [ ] With `LLM_PROVIDER=openai_compatible` and no key, startup fails with a clear error
+- [ ] Unit tests mock model responses with `httpx.MockTransport`, including one tool-call round trip
+- [ ] The default remains `stub`

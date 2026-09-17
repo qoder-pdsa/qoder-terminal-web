@@ -1,12 +1,12 @@
-# BL-06 · 资金流向（港股特色，契约传播 + 并行演示）
+# BL-06 · Capital Flow (Hong Kong feature; contract propagation + parallel demo)
 
-让用户问出“腾讯今天主力资金在流出吗？”
+Lets users ask "Is main capital flowing out of Tencent today?"
 
-| 工作项 | Repo | Depends on | 内容 |
+| Work item | Repo | Depends on | Scope |
 |---|---|---|---|
-| BL-06-1 | data | 无 | 契约：`GET /v1/capital-flow/{symbol}`（日内净流入序列 + 大/中/小单分布）；longbridge 用 `CapitalFlow` + `CapitalDistribution`；mock 同步实现 |
-| BL-06-2 | analyst | BL-06-1 | 新增 `get_capital_flow` 工具；stub 在问题含“资金”时调用并写入摘要 |
-| BL-06-3 | web | BL-06-1 | 新功能码 `CF`（`700 CF`）：净流入柱状图 + 分布 |
-| BL-06-4 | web | BL-06-2, BL-06-3 | e2e：API 契约用例 + `700 CF` UI 用例 + ASK 资金问题用例 |
+| BL-06-1 | data | none | Contract: `GET /v1/capital-flow/{symbol}` (intraday net inflow series + large/medium/small order distribution); longbridge uses `CapitalFlow` + `CapitalDistribution`; mock implemented alongside |
+| BL-06-2 | analyst | BL-06-1 | Add a `get_capital_flow` tool; the stub calls it when the question mentions "capital flow" and includes it in the summary |
+| BL-06-3 | web | BL-06-1 | New function code `CF` (`700 CF`): net inflow bar chart + distribution |
+| BL-06-4 | web | BL-06-2, BL-06-3 | e2e: API contract case + `700 CF` UI case + ASK capital-flow question case |
 
-BL-06-2 与 BL-06-3 在不同 repo、不同语言中**并行**进行 —— 演示的最佳时机。
+BL-06-2 and BL-06-3 run **in parallel** in different repos and languages — the best moment in the demo.

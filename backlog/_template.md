@@ -1,18 +1,18 @@
-# BL-XX-N · <标题>
+# BL-XX-N · <Title>
 
-- **Repo**: qoder-terminal-<data|analyst|web>
+- **Repo**: qoder-terminal-<data|analyst|user|web>
 - **Epic**: BL-XX
-- **Depends on**: BL-XX-M（没有则写 无）
-- **建议小队**: 快速交付 / 标准自动化交付
+- **Depends on**: BL-XX-M (write "none" if there are no dependencies)
+- **Squad**: Standard Automated Delivery
 
-## 背景
-为什么要做，用户能看到什么变化。
+## Background
+Why this is needed and what users will see change.
 
-## 验收标准
-- [ ] 可验证的行为（最好对应一个测试）
-- [ ] 契约变更已先合入提供方 repo（如适用）
-- [ ] `make lint test` 通过
-- [ ] web `e2e/` 新增或更新对应用例（如涉及用户可见行为）
+## Acceptance criteria
+- [ ] Verifiable behavior (ideally mapped to a test)
+- [ ] Contract changes are merged into the provider repo first (if applicable)
+- [ ] `make lint test` passes
+- [ ] web `e2e/` adds or updates the corresponding cases (for user-visible behavior)
 
-## 不做
-明确排除的范围。
+## Out of scope
+Explicitly excluded scope.

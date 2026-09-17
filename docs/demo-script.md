@@ -1,28 +1,28 @@
-# 演示脚本（约 20 分钟，港股交易时段内进行）
+# Demo Script (~20 minutes, during Hong Kong trading hours)
 
-> 原则：每一幕都要让观众**看见协同**，而不只是看见代码被生成。
+> Principle: every act must let the audience **see collaboration**, not just see code being generated.
 
-## 第 0 幕 · 起点（2 分钟）
-- 三个 repo、三种语言（Go / Python / TS）。终端已能 `700 Q`（**真实港股行情**）、`ASK 对比腾讯和阿里`。
-- `GP`、`N`、`W` 还是占位面板 —— 今天要交付的就是它们。
+## Act 0 · Starting point (2 min)
+- Four repos in four languages (Go / Python / Java / TypeScript). The terminal already supports `700 Q` (**live Hong Kong market data**) and `ASK compare Tencent and Alibaba`.
+- `GP`, `N`, and `W` are still placeholder panels — they are what we deliver today.
 
-## 第 1 幕 · 单 repo 快速交付（5 分钟）
-- 工作项 **BL-01 data 实现 EMA / RSI**，派给「快速交付」小队。
-- 看点：QoderCLI 跑基线 → 写失败测试 → Go 实现 → lint 门禁 → 证据上传。
+## Act 1 · Single-repo delivery (5 min)
+- Work item **BL-01: EMA / RSI in data**, assigned to the "Standard Automated Delivery" squad.
+- Highlights: QoderCLI runs the baseline → writes failing tests → implements in Go → lint gate → evidence upload.
 
-## 第 2 幕 · 跨 repo 并行（8 分钟）
-- Epic **BL-02 GP 价格图面板**，或 **BL-06 资金流向**（data → analyst / web 并行）。
-- 看点：
-  1. data 先合入契约变更，analyst（Python）与 web（TS）**两个开发数字人同时开工**。
-  2. CR 数字人 REJECT 一次（如前端对价格做了 `parseFloat` 运算），开发返工。
-  3. QA 部署并跑 `make e2e`，UI 截图作为证据，交人工验收。
+## Act 2 · Cross-repo parallel work (8 min)
+- Epic **BL-02: GP price chart panel**, or **BL-06: capital flow** (data → analyst / web in parallel).
+- Highlights:
+  1. data merges the contract change first, then analyst (Python) and web (TS) are worked on **by two developer digital workers at the same time**.
+  2. The CR digital worker REJECTs once (e.g. the frontend does `parseFloat` math on prices) and development reworks.
+  3. QA deploys and runs `make e2e`, attaches UI screenshots as evidence, and hands off for human acceptance.
 
-## 第 3 幕 · Agentic 高潮（5 分钟）
-- 终端里问：`ASK 腾讯今天主力资金在流出吗？和哪条新闻有关？`
-- 右侧滚动工具调用（报价 → 资金流向 → 资讯），左侧自动打开 `700.HK GP`，最后给出带引用的结论。
-- 如 BL-07 已完成：现场设一条盯盘规则并触发告警。
+## Act 3 · Agentic climax (5 min)
+- Ask in the terminal: `ASK Is main capital flowing out of Tencent today? Which news explains it?`
+- Tool calls scroll on the right (quote → capital flow → news), `700.HK GP` opens automatically on the left, and a cited conclusion follows.
+- If BL-07 is done: set a watch rule live and trigger an alert.
 
-## 兜底
-- Longbridge 故障或午休：`DATA_PROVIDER=mock`（后续 BL-03 replay 回放）。
-- analyst 默认 `stub`，无模型也能跑。
-- 每一幕提前录备用视频。
+## Fallbacks
+- Longbridge outage or lunch break: `DATA_PROVIDER=mock` (BL-03 replay later).
+- analyst defaults to `stub`, so it runs without a model.
+- Pre-record a backup video of every act.
