@@ -1,0 +1,22 @@
+# 三个 repo 需为同级目录。真实行情：DATA_PROVIDER=longbridge docker compose up --build
+services:
+  data:
+    build: ../qoder-terminal-data
+    ports: ["8081:8081"]
+    environment:
+      DATA_PROVIDER: ${DATA_PROVIDER:-mock}
+      LONGBRIDGE_APP_KEY: ${LONGBRIDGE_APP_KEY:-}
+      LONGBRIDGE_APP_SECRET: ${LONGBRIDGE_APP_SECRET:-}
+      LONGBRIDGE_ACCESS_TOKEN: ${LONGBRIDGE_ACCESS_TOKEN:-}
+      HTTPS_PROXY: ${DATA_HTTPS_PROXY:-}
+  analyst:
+    build: ../qoder-terminal-analyst
+    ports: ["8082:8082"]
+    environment:
+      DATA_BASE_URL: http://data:8081
+      LLM_PROVIDER: ${LLM_PROVIDER:-stub}
+    depends_on: [data]
+  web:
+    build: .
+    ports: ["5173:80"]
+    depends_on: [data, analyst]
