@@ -43,5 +43,6 @@ docker compose up --build                     # 含 PostgreSQL 与 user（自动
 环境变量：`VITE_DATA_URL`（默认 `http://localhost:8081`）、`VITE_ANALYST_URL`（默认 `http://localhost:8082`）。
 
 ## 文档
+- [生产部署](docs/deployment.md)
 - [架构](docs/architecture.md) · [AutoWonder 工作流](docs/autowonder-workflow.md) · [演示脚本](docs/demo-script.md) · [Backlog](backlog/README.md)
 - 共享交付规则：[`shared-rules/`](shared-rules/)，修改后运行 `scripts/sync-rules.sh`
