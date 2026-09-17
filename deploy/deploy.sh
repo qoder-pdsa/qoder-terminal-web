@@ -41,10 +41,11 @@ cmd_build() {
   "${COMPOSE[@]}" images 2>/dev/null || docker images 'qoder-terminal/*' --format '{{.Repository}}:{{.Tag}} {{.ID}} {{.CreatedSince}}'
 }
 
-psql_q() { "${COMPOSE[@]}" exec -T postgres psql -U qoder -d qoder -v ON_ERROR_STOP=1 -At -c "$1"; }
+# exec 一律从 /dev/null 读取 stdin：否则通过管道/heredoc 调用本脚本时，会吞掉调用方后续命令
+psql_q() { "${COMPOSE[@]}" exec -T postgres psql -U qoder -d qoder -v ON_ERROR_STOP=1 -At -c "$1" </dev/null; }
 
 cmd_db_status() {
-  "${COMPOSE[@]}" up -d postgres >/dev/null
+  "${COMPOSE[@]}" up -d --quiet-pull postgres >/dev/null 2>&1
   wait_healthy postgres
   if [ "$(psql_q "select to_regclass('qoder_user.flyway_schema_history') is not null")" = "t" ]; then
     psql_q "select version, description, success, installed_on from qoder_user.flyway_schema_history order by installed_rank"
@@ -54,22 +55,22 @@ cmd_db_status() {
 }
 
 cmd_db_backup() {
-  "${COMPOSE[@]}" up -d postgres >/dev/null
+  "${COMPOSE[@]}" up -d --quiet-pull postgres >/dev/null 2>&1
   wait_healthy postgres
   mkdir -p "$ROOT/backups"; chmod 700 "$ROOT/backups"
   local file="$ROOT/backups/qoder-$(date +%Y%m%d%H%M%S).sql.gz"
-  "${COMPOSE[@]}" exec -T postgres pg_dump -U qoder -d qoder | gzip > "$file"
+  "${COMPOSE[@]}" exec -T postgres pg_dump -U qoder -d qoder </dev/null | gzip > "$file"
   chmod 600 "$file"
   log "backup: $file ($(du -h "$file" | cut -f1))"
 }
 
 cmd_db_migrate() {
-  "${COMPOSE[@]}" --profile migrate run --rm user-migrate
+  "${COMPOSE[@]}" --profile migrate run --rm user-migrate </dev/null
   cmd_db_status
 }
 
 cmd_up() {
-  "${COMPOSE[@]}" up -d --no-build --remove-orphans
+  "${COMPOSE[@]}" up -d --no-build --quiet-pull --remove-orphans </dev/null 2>&1 | grep -vE "Pull|Download|Extract|Verif|Waiting" || true
   cmd_status
 }
 
