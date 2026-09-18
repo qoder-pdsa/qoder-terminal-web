@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Qoder Terminal production deployment entry point (called step by step by the AutoWonder QA digital worker; every step is independent and re-runnable)
 #
-#   deploy.sh sync <branch>   update all four repos to origin/<branch> and print the candidate commits
+#   deploy.sh sync <branch>   check out origin/<branch> in every repo that has it, origin/main elsewhere,
+#                             and print the candidate commits
 #   deploy.sh build           build all images (separate from startup) and print image digests
 #   deploy.sh db-status       show Flyway migration history (read-only)
 #   deploy.sh db-backup       back up PostgreSQL to /opt/qoder-terminal/backups
@@ -31,9 +32,12 @@ cmd_sync() {
     if [ -n "$(git -C "$dir" status --porcelain)" ]; then
       log "ERROR $repo deployment directory has uncommitted changes; refusing to overwrite"; exit 1
     fi
-    git -C "$dir" fetch -q origin "$branch"
-    git -C "$dir" checkout -q --detach "origin/$branch"
-    log "$repo @ $(git -C "$dir" log -1 --format='%h %s')"
+    git -C "$dir" fetch -q --prune origin
+    # A feature branch exists in one repo only; every other repo stays on main
+    local want="$branch"
+    if ! git -C "$dir" rev-parse -q --verify "origin/$branch" >/dev/null; then want=main; fi
+    git -C "$dir" checkout -q --detach "origin/$want"
+    log "$repo @ $want $(git -C "$dir" log -1 --format='%h %s')"
   done
 }
 
