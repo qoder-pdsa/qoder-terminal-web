@@ -11,5 +11,6 @@
 | [BL-07](BL-07-watch-agent.md) | Watch agent | all | Agentic | Finale |
 | [BL-08](BL-08-news-panel.md) | N news panel | web | Single repo | Fast delivery |
 | [BL-09](BL-09-login-and-auth.md) | Login, end-to-end auth, activity history | user → data + analyst + web | Parallel across 4 repos | Java / Go / Python / TS at once |
+| [BL-10](BL-10-branch-previews.md) | Per-branch frontend previews | web | Single repo | Acceptance sees the change before merge |
 
 Template: [_template.md](_template.md).
