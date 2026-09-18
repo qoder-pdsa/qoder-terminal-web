@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { panelTitle } from "./registry";
 
-// Characterization of the panel heading as it exists before BL-02. The GP case is the
-// behaviour BL-02 intentionally changes; Q / N / ASK must keep their current headings.
-describe("panelTitle (pre-BL-02 characterization)", () => {
-  it("renders `SYMBOL CODE` for GP with no range segment", () => {
-    expect(panelTitle({ kind: "function", code: "GP", symbol: "700.HK" })).toBe("700.HK GP");
+// BL-02 changes the GP heading from "700.HK GP" to "700.HK GP 3M". The Q / N / ASK cases are
+// unchanged from the pre-BL-02 characterization committed at db9d8af and guard the rest of the
+// 2x2 grid against regressions.
+describe("panelTitle", () => {
+  it("renders `SYMBOL GP RANGE` for GP", () => {
+    expect(panelTitle({ kind: "function", code: "GP", symbol: "700.HK", range: "3M" })).toBe("700.HK GP 3M");
+    expect(panelTitle({ kind: "function", code: "GP", symbol: "700.HK", range: "6M" })).toBe("700.HK GP 6M");
   });
 
-  it("renders `SYMBOL CODE` for Q", () => {
+  it("falls back to the contract default range when GP carries none", () => {
+    expect(panelTitle({ kind: "function", code: "GP", symbol: "700.HK" })).toBe("700.HK GP 3M");
+  });
+
+  it("renders `SYMBOL CODE` for Q with no range segment", () => {
     expect(panelTitle({ kind: "function", code: "Q", symbol: "700.HK" })).toBe("700.HK Q");
   });
 

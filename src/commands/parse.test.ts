@@ -21,7 +21,7 @@ describe("normalizeSymbol", () => {
 describe("parseCommand", () => {
   it.each([
     ["700 Q", { kind: "function", code: "Q", symbol: "700.HK" }],
-    ["  9988.hk gp ", { kind: "function", code: "GP", symbol: "9988.HK" }],
+    ["  9988.hk gp ", { kind: "function", code: "GP", symbol: "9988.HK", range: "3M" }],
     ["N", { kind: "function", code: "N" }],
     ["3690 N", { kind: "function", code: "N", symbol: "3690.HK" }],
     ["ASK compare Tencent and Alibaba", { kind: "ask", question: "compare Tencent and Alibaba" }],
@@ -34,29 +34,48 @@ describe("parseCommand", () => {
   });
 });
 
-// Characterization of the command grammar as it exists before BL-02. The GP cases are the
-// behaviour BL-02 intentionally changes (a range argument); the Q cases pin the boundary of
-// that change and must keep rejecting a third token.
-describe("parseCommand (pre-BL-02 characterization)", () => {
-  it("returns a GP command with no range field", () => {
-    const command = parseCommand("700 GP");
-    expect(command).toEqual({ kind: "function", code: "GP", symbol: "700.HK" });
+// BL-02 adds a range argument to GP. Compared with the pre-BL-02 characterization committed at
+// db9d8af, exactly three expectations change, each authorized by an acceptance criterion: GP now
+// carries a default range, a GP range token parses instead of being rejected, and the GP panel
+// heading gains the range segment. Everything else below is unchanged regression protection.
+describe("parseCommand GP range (BL-02)", () => {
+  it.each([
+    ["700 GP", "700.HK", "3M"],
+    ["700 gp", "700.HK", "3M"],
+    ["700.HK GP", "700.HK", "3M"],
+    ["0700 GP 3M", "700.HK", "3M"],
+    ["700 GP 1M", "700.HK", "1M"],
+    ["700 GP 6M", "700.HK", "6M"],
+    ["700 GP 1Y", "700.HK", "1Y"],
+    ["  9988.hk gp 6m  ", "9988.HK", "6M"],
+  ])("%s → %s %s", (input, symbol, range) => {
+    expect(parseCommand(input)).toEqual({ kind: "function", code: "GP", symbol, range });
+  });
+
+  it.each([
+    ["700 GP 2M", "GP range must be one of 1M, 3M, 6M, 1Y; got 2M"],
+    ["700 gp 2m", "GP range must be one of 1M, 3M, 6M, 1Y; got 2M"],
+    ["700 GP 1W", "GP range must be one of 1M, 3M, 6M, 1Y; got 1W"],
+    ["700 GP DAILY", "GP range must be one of 1M, 3M, 6M, 1Y; got DAILY"],
+  ])("%s is invalid with a clear reason", (input, reason) => {
+    expect(parseCommand(input)).toEqual({ kind: "invalid", input, reason });
+  });
+
+  it("keeps rejecting a third token on codes that take no range", () => {
+    expect(parseCommand("700 Q 6M").kind).toBe("invalid");
+    expect(parseCommand("700 Q 3M").kind).toBe("invalid");
+    expect(parseCommand("700 N 1Y").kind).toBe("invalid");
+    expect(parseCommand("700 Q EXTRA").kind).toBe("invalid");
+  });
+
+  it("leaves Q behaviour unchanged, with no range field", () => {
+    const command = parseCommand("700 Q");
+    expect(command).toEqual({ kind: "function", code: "Q", symbol: "700.HK" });
     expect(command).not.toHaveProperty("range");
   });
 
-  it.each(["700 GP 3M", "700 GP 6M", "700 GP 1Y", "700 gp 6m"])("rejects a GP range argument %j", (input) => {
-    const command = parseCommand(input);
-    expect(command.kind).toBe("invalid");
-    if (command.kind === "invalid") expect(command.reason).toBe("Unknown command");
-  });
-
-  it.each(["700 Q 6M", "700 Q 3M", "700 N 1Y"])("keeps rejecting a range on non-GP codes %j", (input) => {
-    expect(parseCommand(input).kind).toBe("invalid");
-  });
-
   it("keeps the missing-symbol reason for a bare GP", () => {
-    const command = parseCommand("GP");
-    expect(command).toEqual({
+    expect(parseCommand("GP")).toEqual({
       kind: "invalid",
       input: "GP",
       reason: "GP requires a symbol, e.g. 700 GP",
