@@ -30,7 +30,7 @@ Browsers only reach `qoder-terminal-app:80`, where the nginx gateway inside the 
 
 | Step | Command | QA SDLC step |
 |---|---|---|
-| Sync candidate version | `deploy.sh sync <branch>` | Branch merge and deployment preparation |
+| Sync candidate version | `deploy.sh sync <branch>` | Delivery intake and deployment preparation |
 | Build images | `deploy.sh build` | Branch merge and deployment preparation (build before database writes) |
 | Migration status | `deploy.sh db-status` | Database change pre-check |
 | Backup | `deploy.sh db-backup` | Database change execution (before executing) |
@@ -47,3 +47,10 @@ The `qtdeploy` authorized_keys entry on the deployment host uses the forced comm
 which only allows allowlisted deploy.sh subcommands, with no shell and no port forwarding.
 
 Services never migrate the database on startup; migrations only run via `db-migrate`.
+
+## Branch policy
+
+`deploy.sh sync <branch>` checks out `origin/<branch>` in every repo that has it and `origin/main` everywhere else,
+so a feature branch that exists in one repo can be deployed without touching the others.
+QA deploys the **reviewed feature branch** directly; `main` is fast-forwarded by a human after acceptance,
+because the runtime policy on the executors refuses pushes to `main`.
