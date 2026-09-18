@@ -8,6 +8,11 @@
   --up: #3ad17a;
   --down: #ff4d4d;
   --tool: #5fb3ff;
+  /* Candle direction for the GP chart. Default is the mainland convention: red = up,
+     green = down. The HKEX convention is the opposite (green up / red down) — swap these
+     two values to switch. Kept separate from --up/--down, which color text and stay as they are. */
+  --candle-up: #ff4d4d;
+  --candle-down: #3ad17a;
   font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
 }
 body { margin: 0; background: var(--bg); color: var(--text); }
@@ -34,3 +39,6 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 .tool { color: var(--tool); }
 .answer { white-space: pre-wrap; color: var(--text); font: inherit; }
 a { color: var(--tool); }
+/* The chart sizes itself to this box (autoSize); the clamp keeps it inside a 2x2 cell on
+   desktop and inside the stacked mobile rows without touching the shared .panel layout. */
+.chart { width: 100%; height: clamp(200px, 38vh, 460px); }
