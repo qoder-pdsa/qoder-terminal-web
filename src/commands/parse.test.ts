@@ -33,3 +33,33 @@ describe("parseCommand", () => {
     expect(parseCommand(input).kind).toBe("invalid");
   });
 });
+
+// Characterization of the command grammar as it exists before BL-02. The GP cases are the
+// behaviour BL-02 intentionally changes (a range argument); the Q cases pin the boundary of
+// that change and must keep rejecting a third token.
+describe("parseCommand (pre-BL-02 characterization)", () => {
+  it("returns a GP command with no range field", () => {
+    const command = parseCommand("700 GP");
+    expect(command).toEqual({ kind: "function", code: "GP", symbol: "700.HK" });
+    expect(command).not.toHaveProperty("range");
+  });
+
+  it.each(["700 GP 3M", "700 GP 6M", "700 GP 1Y", "700 gp 6m"])("rejects a GP range argument %j", (input) => {
+    const command = parseCommand(input);
+    expect(command.kind).toBe("invalid");
+    if (command.kind === "invalid") expect(command.reason).toBe("Unknown command");
+  });
+
+  it.each(["700 Q 6M", "700 Q 3M", "700 N 1Y"])("keeps rejecting a range on non-GP codes %j", (input) => {
+    expect(parseCommand(input).kind).toBe("invalid");
+  });
+
+  it("keeps the missing-symbol reason for a bare GP", () => {
+    const command = parseCommand("GP");
+    expect(command).toEqual({
+      kind: "invalid",
+      input: "GP",
+      reason: "GP requires a symbol, e.g. 700 GP",
+    });
+  });
+});
