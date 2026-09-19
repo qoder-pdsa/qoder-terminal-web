@@ -61,16 +61,17 @@ Initialized from the official `initialize-autowonder-harness` skill template, wi
 | | 3. Characterization Regression and Pre-verification | Rerun characterization vs. baseline, `make lint test`, acceptance mapping |
 | | 4. Commit and Review Handoff | Push the business branch, summary and evidence, hand off to `AW_CR` |
 | Code Review | 1. Review and Routing | Read-only PASS/REJECT; PASS → `AW_QA`, defects → `AW_FS_DEV` |
-| QA & Deployment | 1. Delivery Intake and Deployment Preparation | Check CR, `deploy.sh sync <branch>` + `build`, decide the database scope |
+| QA & Deployment | 1. Delivery Intake and Deployment Preparation | Check CR, choose **preview mode** (branch only in web) or **production mode** (backend touched → `deploy.sh sync <branch>` + `build`), decide the database scope |
 | | 2. Database Change | `db-status` → `db-backup` → `db-migrate` → `db-status`, or justified no-op |
-| | 3. Deployment and Health Check | `deploy.sh up` then `health` with all 6 checks OK |
-| | 4. Post-deployment Tests and Human Acceptance | Playwright against the deployed environment, status transition, human acceptance handoff |
+| | 3. Deployment and Health Check | Preview mode: `deploy.sh preview <branch>` → `http://47.242.87.16/preview/<slug>/`; production mode: `deploy.sh up`; then `health` with all 6 checks OK |
+| | 4. Post-deployment Tests and Human Acceptance | Playwright against the preview or production URL (`PREVIEW_SLUG`, `WEB_URL`), status transition, human acceptance handoff with that URL |
 
 ## Branch policy
 
 The reviewed **business branch itself is what gets deployed**. Digital workers never push or merge `main`;
 `deploy.sh sync <branch>` checks that branch out in the repo that has it and `main` everywhere else,
-and a human fast-forwards `main` after accepting the running result.
+and a human fast-forwards `main` after accepting the running result. Frontend-only work items are accepted on their own preview URL
+(see [deployment.md](deployment.md) → Per-branch frontend previews); production is released afterwards with `deploy.sh sync main` → `build` → `up`.
 
 ## Evidence budget
 
