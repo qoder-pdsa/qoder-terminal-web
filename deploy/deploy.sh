@@ -24,7 +24,7 @@ PREVIEW_MAX_AGE_DAYS=7  # and none older than this
 REPOS=(qoder-terminal-data qoder-terminal-analyst qoder-terminal-user qoder-terminal-web)
 COMPOSE=(docker compose -f "$SRC/qoder-terminal-web/deploy/docker-compose.prod.yml")
 BASE_URL=${QT_BASE_URL:-http://127.0.0.1}
-PUBLIC_URL=${QT_PUBLIC_URL:-http://47.242.87.16}
+PUBLIC_URL=${QT_PUBLIC_URL:-https://qoder.live}
 
 # shellcheck source=preview-lib.sh
 . "$(dirname "$(readlink -f "$0")")/preview-lib.sh"

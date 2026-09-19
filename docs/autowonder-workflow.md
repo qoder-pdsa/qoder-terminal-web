@@ -1,6 +1,6 @@
 # qoder-wonder (AutoWonder) × QoderCLI Workflow
 
-Platform: http://47.239.52.168 (qoder-wonder, AutoWonder 0.8.0 community edition), workspace **qoder-terminal** (id 10001).
+Platform: https://wonder.qoder.live (qoder-wonder, AutoWonder 0.8.0 community edition), workspace **qoder-terminal** (id 10001).
 
 The platform frontend is built from the fork `~/Projects/qoder-wonder` (AutoWonder 0.8.0 community + zh-CN/en-US i18n + layout fixes; see its README).
 Deployed 2026-09-19 by rewriting `BOOT-INF/classes/static` inside `/opt/qoder-wonder/auto-wonder.jar` with `scripts/replace-frontend-static.sh`;
@@ -70,7 +70,7 @@ Initialized from the official `initialize-autowonder-harness` skill template, wi
 | Code Review | 1. Review and Routing | Read-only PASS/REJECT; PASS → `AW_QA`, defects → `AW_FS_DEV` |
 | QA & Deployment | 1. Delivery Intake and Deployment Preparation | Check CR, choose **preview mode** (branch only in web) or **production mode** (backend touched → `deploy.sh sync <branch>` + `build`), decide the database scope |
 | | 2. Database Change | `db-status` → `db-backup` → `db-migrate` → `db-status`, or justified no-op |
-| | 3. Deployment and Health Check | Preview mode: `deploy.sh preview <branch>` → `http://47.242.87.16/preview/<slug>/`; production mode: `deploy.sh up`; then `health` with all 6 checks OK |
+| | 3. Deployment and Health Check | Preview mode: `deploy.sh preview <branch>` → `https://qoder.live/preview/<slug>/`; production mode: `deploy.sh up`; then `health` with all 6 checks OK |
 | | 4. Post-deployment Tests and Human Acceptance | Playwright against the preview or production URL (`PREVIEW_SLUG`, `WEB_URL`), status transition, human acceptance handoff with that URL |
 
 ## Branch policy
@@ -112,7 +112,7 @@ worker runs its own default SDLC, and cross-role routing is written into the ste
 1. Create a **TASK** work item from `backlog/DEMO-fast-track.md` (or any small frontend change).
 2. Assign it to **Demo Developer** with squad **Demo Fast Track**. Nothing else to switch; the developer's default SDLC does the rest
    (passing `sdlcId` at assignment is not enough on its own — a comment-triggered continuation falls back to the assignee's default SDLC).
-3. Watch the dispatch's step timeline: step 2 posts `Preview URL: http://47.242.87.16/preview/<slug>/`; the reviewer's handoff puts the same URL on your task card.
+3. Watch the dispatch's step timeline: step 2 posts `Preview URL: https://qoder.live/preview/<slug>/`; the reviewer's handoff puts the same URL on your task card.
 4. Open the preview, accept, move the TASK to `done`, merge the branch into `main`, release with `deploy.sh sync main → build → up → health`.
 
 Measured on DEMO-1 (2026-09-19): implementation 5 min, preview + e2e 13 min, handoff 3 min, review 11 min — about **35 minutes** from dispatch to the human's task card.
