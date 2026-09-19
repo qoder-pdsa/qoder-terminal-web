@@ -79,22 +79,26 @@ One authoritative `evidence/report.md` per work item, kept under **20 KB**: conc
 Raw logs are saved once and referenced by path, never pasted into the summary or into work item comments.
 This keeps the per-step context from snowballing across the pipeline.
 
-## Demo Fast Track (SDLC 10003, workType TASK)
+## Demo Fast Track (SDLC 10003, workType TASK, squad 10001)
 
-A live-demo flow for **frontend-only** TASK items: one digital worker (Full-Stack Developer), three steps, about 20–30 minutes,
-no CR/QA handoff. Not for backend or database changes — those go through the full pipeline.
+A live-demo flow for **frontend-only** TASK items: two digital workers, about 30 minutes. The Full-Stack Developer
+implements, publishes a branch preview and runs e2e (3 steps), then hands off to the Code Reviewer, whose PASS goes
+straight to human acceptance on the preview URL. No QA deployment step. Not for backend or database changes — those go
+through the full pipeline. The squad **Demo Fast Track** (10001) contains only these two roles, so the delivery-progress
+panel shows exactly the lanes that run.
 
-| Step | What it does | Timeout |
-|---|---|---|
-| 1. TDD Implementation | Branch from `main`, one baseline `make test`, failing test → minimal code, `make lint test`; no servers/browsers | 25 min |
-| 2. Push, Preview, and e2e | `npm ci` if needed, push the branch, `deploy.sh preview <branch>`, `health` 6/6, Playwright api + ui against the preview; URL in the step timeline and a work item comment | 20 min |
-| 3. Human Acceptance | Summary ≤ 10 KB, HUMAN handoff whose reason starts with the preview URL; TASK stays `doing` | 10 min |
+| Step | Owner | What it does | Timeout |
+|---|---|---|---|
+| 1. TDD Implementation | Full-Stack Developer | Branch from `main`, `npm ci`, one baseline `make test`, failing test → minimal code, `make lint test`; no servers/browsers | 25 min |
+| 2. Push, Preview, and e2e | Full-Stack Developer | Push the branch, `deploy.sh preview <branch>`, `health` 6/6, Playwright api + ui against the preview; URL in the step timeline and a work item comment | 20 min |
+| 3. Review Handoff | Full-Stack Developer | Summary ≤ 10 KB, handoff to `AW_CR` with the preview URL first in the reason | 10 min |
+| Code Review (SDLC 10001) | Code Reviewer | Read-only review; fast-track PASS → HUMAN acceptance with `Accept at <preview URL>`; REJECT → developer on the same branch | 25 min |
 
 **How to trigger one on stage** (MCP or UI):
-1. Create a **TASK** work item from `backlog/DEMO-fast-track.md` (or any small frontend change).
-2. **Before the demo, switch the Full-Stack Developer's default SDLC to 10003** (`set_agent_default_sdlc` → submit → publish; switch back to 10000 afterwards).
+1. **Before the demo, switch the Full-Stack Developer's default SDLC to 10003** (`set_agent_default_sdlc` → submit → publish; switch back to 10000 afterwards).
    Passing `sdlcId` only at `assign_workitem` is not enough: a continuation dispatch created from a comment falls back to the agent's default SDLC (observed 2026-09-19 with dispatch 10014).
-3. Watch the dispatch's step timeline: step 2 posts `Preview URL: http://47.242.87.16/preview/<slug>/`.
+2. Create a **TASK** work item from `backlog/DEMO-fast-track.md` (or any small frontend change) and assign it to Full-Stack Developer with **squad 10001**.
+3. Watch the dispatch's step timeline: step 2 posts `Preview URL: http://47.242.87.16/preview/<slug>/`; the reviewer's handoff puts the same URL on your task card.
 4. Open the preview, accept, move the TASK to `done`, merge the branch into `main`, release with `deploy.sh sync main → build → up → health`.
 
-Measured on DEMO-1 (2026-09-19, dispatch 10016): implementation 5 min, preview + e2e 13 min, acceptance handoff 3 min — **23 minutes** from dispatch to the human's task card.
+Measured on DEMO-1 (2026-09-19, dispatch 10016, before the review step existed): implementation 5 min, preview + e2e 13 min, handoff 3 min — 23 minutes to the human's task card. Expect ~12 more minutes for the review.
