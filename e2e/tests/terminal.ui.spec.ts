@@ -25,6 +25,25 @@ test("invalid command shows an error", async ({ page }) => {
   await expect(page.getByTestId("command-error")).toContainText("requires a symbol");
 });
 
+test("GP opens a candlestick chart panel with a canvas", async ({ page }) => {
+  await page.goto("/");
+  await run(page, "700 GP");
+  await expect(page.getByRole("heading", { name: "700.HK GP 3M" })).toBeVisible();
+  const panel = page.getByTestId("graph-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.locator("canvas").first()).toBeVisible();
+});
+
+test("GP takes an explicit range and rejects an unknown one", async ({ page }) => {
+  await page.goto("/");
+  await run(page, "700 GP 6M");
+  await expect(page.getByRole("heading", { name: "700.HK GP 6M" })).toBeVisible();
+  await expect(page.getByTestId("graph-panel").locator("canvas").first()).toBeVisible();
+
+  await run(page, "700 GP 2M");
+  await expect(page.getByTestId("command-error")).toContainText("GP range must be one of 1M, 3M, 6M, 1Y");
+});
+
 test("layout is a fixed 2x2 grid with empty slots", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByTestId("empty-slot")).toHaveCount(4);

@@ -1,8 +1,10 @@
+import { DEFAULT_HISTORY_RANGE, HISTORY_RANGES, type HistoryRange } from "../api/data";
+
 export const FUNCTION_CODES = ["Q", "GP", "N", "W", "ASK"] as const;
 export type FunctionCode = (typeof FUNCTION_CODES)[number];
 
 export type Command =
-  | { kind: "function"; code: Exclude<FunctionCode, "ASK">; symbol?: string }
+  | { kind: "function"; code: Exclude<FunctionCode, "ASK">; symbol?: string; range?: HistoryRange }
   | { kind: "ask"; question: string }
   | { kind: "invalid"; input: string; reason: string };
 
@@ -12,6 +14,25 @@ const REQUIRES_SYMBOL: ReadonlySet<FunctionCode> = new Set(["Q", "GP"]);
 
 function isCode(token: string): token is FunctionCode {
   return (FUNCTION_CODES as readonly string[]).includes(token);
+}
+
+function isHistoryRange(token: string): token is HistoryRange {
+  return (HISTORY_RANGES as readonly string[]).includes(token);
+}
+
+/** GP is the only code that takes a range argument; omitted, it uses the contract default. */
+function parseGpRange(input: string, symbol: string, token: string | undefined): Command {
+  if (token === undefined) {
+    return { kind: "function", code: "GP", symbol, range: DEFAULT_HISTORY_RANGE };
+  }
+  if (!isHistoryRange(token)) {
+    return {
+      kind: "invalid",
+      input,
+      reason: `GP range must be one of ${HISTORY_RANGES.join(", ")}; got ${token}`,
+    };
+  }
+  return { kind: "function", code: "GP", symbol, range: token };
 }
 
 /**
@@ -26,7 +47,7 @@ export function normalizeSymbol(token: string): string | null {
   return market === "HK" && HK_SHORT.test(code) ? `${Number(code)}.HK` : token;
 }
 
-/** Parse command bar input. Syntax: `[SYMBOL] <CODE>` or `ASK <question>`. */
+/** Parse command bar input. Syntax: `[SYMBOL] <CODE>`, `SYMBOL GP [RANGE]`, or `ASK <question>`. */
 export function parseCommand(raw: string): Command {
   const input = raw.trim();
   const upper = input.toUpperCase();
@@ -39,15 +60,16 @@ export function parseCommand(raw: string): Command {
   }
 
   const tokens = upper.split(/\s+/).filter(Boolean);
-  const [first, second] = tokens;
+  const [first, second, third] = tokens;
   if (tokens.length === 1 && first && isCode(first) && first !== "ASK") {
     return REQUIRES_SYMBOL.has(first)
       ? { kind: "invalid", input, reason: `${first} requires a symbol, e.g. 700 ${first}` }
       : { kind: "function", code: first };
   }
-  if (tokens.length === 2 && first && second && isCode(second) && second !== "ASK") {
+  if ((tokens.length === 2 || tokens.length === 3) && first && second && isCode(second) && second !== "ASK") {
     const symbol = normalizeSymbol(first);
-    if (symbol) return { kind: "function", code: second, symbol };
+    if (symbol && second === "GP") return parseGpRange(input, symbol, third);
+    if (symbol && tokens.length === 2) return { kind: "function", code: second, symbol };
   }
   return { kind: "invalid", input, reason: "Unknown command" };
 }
