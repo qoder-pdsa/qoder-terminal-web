@@ -64,7 +64,7 @@ preview deployments do:
 
 ```
 deploy.sh preview feature/bl02-graph-price-panel-20260918123222
-→ http://47.242.87.16/preview/bl02-graph-price-panel-20260918123222/
+→ https://qoder.live/preview/bl02-graph-price-panel-20260918123222/
 ```
 
 - **Slug**: the branch name without its type prefix (`feature/`, `fix/`), lowercased, runs of anything outside
@@ -82,3 +82,18 @@ deploy.sh preview feature/bl02-graph-price-panel-20260918123222
   runs `e2e/tests/preview.api.spec.ts` (skipped when `PREVIEW_SLUG` is unset).
 - **Release**: once a human accepts the preview, `main` is fast-forwarded and production is updated with
   `deploy.sh sync main` → `build` → `up` → `health`.
+
+## Domains and HTTPS
+
+| URL | Host | Serves |
+|---|---|---|
+| `https://qoder.live` | qoder-terminal-app (47.242.87.16) | Production terminal; `www.qoder.live` and plain HTTP redirect here |
+| `https://qoder.live/preview/<slug>/` | same | Per-branch frontend previews |
+| `https://wonder.qoder.live` | qoder-wonder-260917-app (47.239.52.168) | AutoWonder platform (`AUTOWONDER_PUBLIC_BASE_URL`) |
+
+- DNS: Alibaba Cloud DNS zone `qoder.live` (A records `@`, `www` → 47.242.87.16; `wonder` → 47.239.52.168).
+- Certificates: Let's Encrypt via HTTP-01 on `/var/www/acme`, renewed daily by `/etc/cron.d/qoder-terminal-certbot` (app host) and
+  `/etc/cron.d/qoder-wonder-certbot` (platform host). On the app host `deploy/tls.sh issue|enable|status` manages it; the TLS server
+  blocks come from `deploy/tls/` and are mounted into the web container from `/opt/qoder-terminal/tls`. On the platform host the
+  equivalent is `/usr/local/bin/wonder-tls`.
+- Access by IP and from `127.0.0.1` stays on plain HTTP, so health checks and QA over the private network (`http://10.23.1.193`) are unchanged.
