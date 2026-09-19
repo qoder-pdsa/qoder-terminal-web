@@ -69,8 +69,8 @@ deploy.sh preview feature/bl02-graph-price-panel-20260918123222
 
 - **Slug**: the branch name without its type prefix (`feature/`, `fix/`), lowercased, runs of anything outside
   `[a-z0-9]` replaced by one dash, truncated to 40 characters (`deploy/preview-lib.sh`, unit-tested).
-- **Build**: a clean `git archive` of `origin/<branch>` is built in Docker with `VITE_BASE=/preview/<slug>/`; the
-  production checkout and images are never touched. The bundle lands in `/opt/qoder-terminal/previews/<slug>/`
+- **Build**: a clean `git archive` of `origin/<branch>` is built with `deploy/Dockerfile.preview` (owned by the deployment
+  tooling, so any branch can be previewed) and `vite build --base=/preview/<slug>/`; the production checkout and images are never touched. The bundle lands in `/opt/qoder-terminal/previews/<slug>/`
   (atomic replace), which the web container mounts read-only at `/usr/share/nginx/preview`.
 - **Routing**: nginx serves `/preview/<slug>/` with SPA fallback to that preview's own `index.html`; `index.html` is
   `no-cache`, hashed assets are immutable; an unknown slug is a 404. `/` stays the production bundle.
