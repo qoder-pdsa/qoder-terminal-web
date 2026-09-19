@@ -154,9 +154,12 @@ cmd_preview() {
   docker build -q --target build \
     --build-arg VITE_BASE="/preview/$slug/" --build-arg VITE_DATA_URL=/api/data --build-arg VITE_ANALYST_URL=/api/analyst \
     -t "$image" "$tmp" >/dev/null
-  local cid; cid=$(docker create "$image")
-  docker cp -q "$cid:/app/dist" "$tmp/dist"
-  docker rm "$cid" >/dev/null; docker rmi "$image" >/dev/null
+  # A named helper container so a failed earlier run never blocks the next one
+  local cname="qt-preview-$slug"
+  docker rm -f "$cname" >/dev/null 2>&1 || true
+  docker create --name "$cname" "$image" >/dev/null
+  docker cp -q "$cname:/app/dist" "$tmp/dist"
+  docker rm "$cname" >/dev/null; docker rmi "$image" >/dev/null 2>&1 || true
   printf '{"slug":"%s","branch":"%s","commit":"%s","builtAt":"%s"}\n' "$slug" "$branch" "$commit" "$(date -u +%FT%TZ)" > "$tmp/dist/.preview.json"
 
   # Atomic replace so a preview is never half-published
