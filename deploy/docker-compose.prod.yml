@@ -68,6 +68,9 @@ services:
     image: qoder-terminal/web:${QT_VERSION:-latest}
     ports:
       - "${QT_HTTP_PORT:-80}:80"
+    volumes:
+      # Per-branch frontend previews published by deploy.sh preview <branch>, served at /preview/<slug>/
+      - ${QT_PREVIEWS:-/opt/qoder-terminal/previews}:/usr/share/nginx/preview:ro
     depends_on: [data, analyst, user]
 
 volumes:

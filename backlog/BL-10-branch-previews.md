@@ -16,21 +16,24 @@ Out of scope: per-branch backends or databases (that is the full-stack preview, 
 
 ## Design
 - Previews are static bundles built from a branch and served by the existing nginx gateway in the web container at `/preview/<slug>/`.
-- `<slug>` is the branch name lowercased with every character outside `[a-z0-9-]` replaced by `-`, truncated to 40 characters; it must be validated, since it becomes a filesystem path.
+- `<slug>` is the branch name without its type prefix (`feature/`, `fix/`), lowercased, runs of characters outside `[a-z0-9]` replaced by one `-`, truncated to 40 characters; it must be validated, since it becomes a filesystem path.
 - Built files live on the host in `/opt/qoder-terminal/previews/<slug>/` and are mounted read-only into the web container.
 - API calls keep using the same-origin gateway paths (`/api/data`, `/api/analyst`), so a preview always talks to the shared backend.
 
 ## Acceptance criteria
-- [ ] `deploy/deploy.sh preview <branch>` builds that branch's frontend with the correct base path and publishes it to `/opt/qoder-terminal/previews/<slug>/`, printing the resulting URL
-- [ ] `deploy/deploy.sh preview-rm <slug>` removes one preview; `deploy/deploy.sh preview-ls` lists slug, branch, commit, build time, and size
-- [ ] `docker-compose.prod.yml` mounts `/opt/qoder-terminal/previews` read-only into the web container; `deploy/nginx.conf` serves `/preview/<slug>/` with SPA fallback to that preview's own `index.html` and no caching of `index.html`
-- [ ] Vite `base` is set at build time so assets resolve under `/preview/<slug>/`; deep links inside a preview do not fall back to the production SPA
-- [ ] Retention: at most 10 previews, and previews older than 7 days are removed on the next `preview` run; `preview-rm` of a missing slug exits non-zero with a clear message
-- [ ] Slug validation rejects `..`, absolute paths, and anything outside the allowed character set (unit-tested in a shell test or a small Go/Node test, whichever fits the repo)
-- [ ] `deploy/ssh-gate.sh` allows `preview <branch>`, `preview-rm <slug>`, and `preview-ls` with the same argument validation as the existing subcommands
-- [ ] e2e: after publishing a preview, `/preview/<slug>/` returns the app and a quote command works against the shared backend; production `/` is unaffected
-- [ ] `docs/deployment.md` documents the commands, the URL shape, retention, and the "shared backend" caveat
-- [ ] `make lint test` passes
+- [x] `deploy/deploy.sh preview <branch>` builds that branch's frontend with the correct base path and publishes it to `/opt/qoder-terminal/previews/<slug>/`, printing the resulting URL
+- [x] `deploy/deploy.sh preview-rm <slug>` removes one preview; `deploy/deploy.sh preview-ls` lists slug, branch, commit, build time, and size
+- [x] `docker-compose.prod.yml` mounts `/opt/qoder-terminal/previews` read-only into the web container; `deploy/nginx.conf` serves `/preview/<slug>/` with SPA fallback to that preview's own `index.html` and no caching of `index.html`
+- [x] Vite `base` is set at build time so assets resolve under `/preview/<slug>/`; deep links inside a preview do not fall back to the production SPA
+- [x] Retention: at most 10 previews, and previews older than 7 days are removed on the next `preview` run; `preview-rm` of a missing slug exits non-zero with a clear message
+- [x] Slug validation rejects `..`, absolute paths, and anything outside the allowed character set (unit-tested in a shell test or a small Go/Node test, whichever fits the repo)
+- [x] `deploy/ssh-gate.sh` allows `preview <branch>`, `preview-rm <slug>`, and `preview-ls` with the same argument validation as the existing subcommands
+- [x] e2e: after publishing a preview, `/preview/<slug>/` returns the app and a quote command works against the shared backend; production `/` is unaffected
+- [x] `docs/deployment.md` documents the commands, the URL shape, retention, and the "shared backend" caveat
+- [x] `make lint test` passes
+
+## Status
+Shipped 2026-09-19 (implemented directly, not through the pipeline). See `docs/deployment.md` → Per-branch frontend previews.
 
 ## Follow-up (not part of this item)
 Once this ships, the QA deployment configuration in the AutoWonder workspace is updated so `qa_deploy_setup` publishes a preview for the
