@@ -3,12 +3,12 @@
 Small, visible, frontend-only changes that fit the **Demo Fast Track** SDLC (10003). Paste one as a TASK work item and
 assign it to the Full-Stack Developer with `sdlcId: 10003`.
 
-## DEMO-1 · Q panel shows the day's range
-- **Repo**: qoder-terminal-web (frontend only; `/v1/quotes/{symbol}` already returns `open`, `high`, `low`, `prevClose`)
-- Goal: the quote panel (`700 Q`) shows a `Day range: <low> – <high>` line under the price, values as returned by the API (decimal strings, no arithmetic).
-- [ ] `QuotePanel.tsx` renders `data-testid="quote-range"` with `low – high`; hidden when either field is missing
-- [ ] Unit test for the formatting helper (no floats; strings passed through)
-- [ ] UI e2e: after `700 Q`, `quote-range` is visible and matches `/\d+\.\d{4} – \d+\.\d{4}/`
+## DEMO-1 · Q panel: colored change and Hong Kong time
+- **Repo**: qoder-terminal-web (frontend only; `/v1/quotes/{symbol}` returns `price`, `change`, `changePercent`, `asOf`)
+- Goal: the quote panel (`700 Q`) shows the change as `▲ +7.0000 (+1.64%)` / `▼ -7.0000 (-1.64%)` colored with the existing `--candle-up` / `--candle-down` CSS variables, and `asOf` as `HH:mm HKT`.
+- [ ] Pure, unit-tested `formatChange(change, changePercent)` and `formatHkTime(asOf)` in `src/panels/quoteFormat.ts`; strings are passed through, no float arithmetic
+- [ ] `QuotePanel.tsx` renders `data-testid="quote-change"` (with `data-direction="up|down|flat"`) and `data-testid="quote-asof"`
+- [ ] UI e2e: after `700 Q`, `quote-change` is visible and starts with `▲` or `▼`
 - [ ] `make lint test` passes
 
 ## DEMO-2 · GP panel: toggle SMA overlays
