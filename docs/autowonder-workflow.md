@@ -78,3 +78,20 @@ and a human fast-forwards `main` after accepting the running result. Frontend-on
 One authoritative `evidence/report.md` per work item, kept under **20 KB**: conclusions, exact commands, counts, and file paths.
 Raw logs are saved once and referenced by path, never pasted into the summary or into work item comments.
 This keeps the per-step context from snowballing across the pipeline.
+
+## Demo Fast Track (SDLC 10003, workType TASK)
+
+A live-demo flow for **frontend-only** TASK items: one digital worker (Full-Stack Developer), three steps, about 20–30 minutes,
+no CR/QA handoff. Not for backend or database changes — those go through the full pipeline.
+
+| Step | What it does | Timeout |
+|---|---|---|
+| 1. TDD Implementation | Branch from `main`, one baseline `make test`, failing test → minimal code, `make lint test`; no servers/browsers | 25 min |
+| 2. Push, Preview, and e2e | Push the branch, `deploy.sh preview <branch>`, `health` 6/6, Playwright api + ui against the preview; URL in the step timeline and a work item comment | 20 min |
+| 3. Human Acceptance | Summary ≤ 10 KB, HUMAN handoff whose reason starts with the preview URL; TASK stays `doing` | 10 min |
+
+**How to trigger one on stage** (MCP or UI):
+1. Create a **TASK** work item from `backlog/DEMO-fast-track.md` (or any small frontend change).
+2. Assign it to Full-Stack Developer (agent 10001) with **`sdlcId: 10003`** explicitly (`assign_workitem` accepts `sdlcId`; the agent's default stays the full 4-step flow).
+3. Watch the dispatch's step timeline: step 2 posts `Preview URL: http://47.242.87.16/preview/<slug>/`.
+4. Open the preview, accept, move the TASK to `done`, merge the branch into `main`, release with `deploy.sh sync main → build → up → health`.
