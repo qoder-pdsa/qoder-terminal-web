@@ -87,11 +87,14 @@ no CR/QA handoff. Not for backend or database changes — those go through the f
 | Step | What it does | Timeout |
 |---|---|---|
 | 1. TDD Implementation | Branch from `main`, one baseline `make test`, failing test → minimal code, `make lint test`; no servers/browsers | 25 min |
-| 2. Push, Preview, and e2e | Push the branch, `deploy.sh preview <branch>`, `health` 6/6, Playwright api + ui against the preview; URL in the step timeline and a work item comment | 20 min |
+| 2. Push, Preview, and e2e | `npm ci` if needed, push the branch, `deploy.sh preview <branch>`, `health` 6/6, Playwright api + ui against the preview; URL in the step timeline and a work item comment | 20 min |
 | 3. Human Acceptance | Summary ≤ 10 KB, HUMAN handoff whose reason starts with the preview URL; TASK stays `doing` | 10 min |
 
 **How to trigger one on stage** (MCP or UI):
 1. Create a **TASK** work item from `backlog/DEMO-fast-track.md` (or any small frontend change).
-2. Assign it to Full-Stack Developer (agent 10001) with **`sdlcId: 10003`** explicitly (`assign_workitem` accepts `sdlcId`; the agent's default stays the full 4-step flow).
+2. **Before the demo, switch the Full-Stack Developer's default SDLC to 10003** (`set_agent_default_sdlc` → submit → publish; switch back to 10000 afterwards).
+   Passing `sdlcId` only at `assign_workitem` is not enough: a continuation dispatch created from a comment falls back to the agent's default SDLC (observed 2026-09-19 with dispatch 10014).
 3. Watch the dispatch's step timeline: step 2 posts `Preview URL: http://47.242.87.16/preview/<slug>/`.
 4. Open the preview, accept, move the TASK to `done`, merge the branch into `main`, release with `deploy.sh sync main → build → up → health`.
+
+Measured on DEMO-1 (2026-09-19, dispatch 10016): implementation 5 min, preview + e2e 13 min, acceptance handoff 3 min — **23 minutes** from dispatch to the human's task card.
