@@ -11,6 +11,17 @@ test("short HK code opens a live quote", async ({ page }) => {
   await expect(page.getByTestId("quote-price")).toContainText(/\d+\.\d{4}\s*HKD/);
 });
 
+test("Q shows a directional change and the Hong Kong time", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 Q");
+
+  const change = page.getByTestId("quote-change");
+  await expect(change).toBeVisible();
+  await expect(change).toHaveAttribute("data-direction", /^(up|down|flat)$/);
+  await expect(change).toContainText(/^[▲▼▬] [+-]?\d+\.\d{4} \([+-]?\d+\.\d{2}%\)$/);
+  await expect(page.getByTestId("quote-asof")).toHaveText(/^\d{2}:\d{2} HKT$/);
+});
+
 test("ASK streams an answer and opens chart panels", async ({ page }) => {
   await page.goto("./");
   await run(page, "ASK compare Tencent and Alibaba");
