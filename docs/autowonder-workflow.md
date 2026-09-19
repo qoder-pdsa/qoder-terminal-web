@@ -4,8 +4,8 @@ Platform: http://47.239.52.168 (qoder-wonder, AutoWonder 0.8.0 community edition
 
 The platform frontend is built from the fork `~/Projects/qoder-wonder` (AutoWonder 0.8.0 community + zh-CN/en-US i18n + layout fixes; see its README).
 Deployed 2026-09-19 by rewriting `BOOT-INF/classes/static` inside `/opt/qoder-wonder/auto-wonder.jar` with `scripts/replace-frontend-static.sh`;
-the previous jar is kept as `/opt/qoder-wonder/auto-wonder.jar.bak-20260919111008`. Roll back with
-`cp /opt/qoder-wonder/auto-wonder.jar.bak-20260919111008 /opt/qoder-wonder/auto-wonder.jar && systemctl restart qoder-wonder`.
+previous jars are kept as `/opt/qoder-wonder/auto-wonder.jar.bak-<stamp>` (`…-20260919111008` = original i18n build, `…-20260919134807` = first fork build). Roll back with
+`cp /opt/qoder-wonder/auto-wonder.jar.bak-<stamp> /opt/qoder-wonder/auto-wonder.jar && systemctl restart qoder-wonder`.
 The build artifact reaches the host through Cloud Assistant `RunCommand` in 12 KB base64 chunks (no SSH/OSS from the workstation).
 
 ## Infrastructure (Alibaba Cloud Hong Kong, one VPC)
