@@ -145,9 +145,10 @@ cmd_preview() {
   git -C "$web" rev-parse -q --verify "origin/$branch" >/dev/null || { log "ERROR origin/$branch does not exist in qoder-terminal-web"; exit 1; }
   local commit; commit=$(git -C "$web" rev-parse --short "origin/$branch")
 
-  # Build from a clean export of the branch (the production checkout is never touched)
-  local tmp; tmp=$(mktemp -d "${TMPDIR:-/tmp}/qt-preview.XXXXXX")
-  trap 'rm -rf "$tmp"' EXIT
+  # Build from a clean export of the branch (the production checkout is never touched).
+  # PREVIEW_TMP is global on purpose: an EXIT trap runs after function locals are gone.
+  PREVIEW_TMP=$(mktemp -d "${TMPDIR:-/tmp}/qt-preview.XXXXXX"); local tmp=$PREVIEW_TMP
+  trap 'rm -rf "${PREVIEW_TMP:-}"' EXIT
   git -C "$web" archive "origin/$branch" | tar -x -C "$tmp"
   local image="qoder-terminal/web-preview:$slug"
   docker build -q --target build \
@@ -155,7 +156,7 @@ cmd_preview() {
     -t "$image" "$tmp" >/dev/null
   local cid; cid=$(docker create "$image")
   docker cp -q "$cid:/app/dist" "$tmp/dist"
-  docker rm -q "$cid" >/dev/null; docker rmi -q "$image" >/dev/null
+  docker rm "$cid" >/dev/null; docker rmi "$image" >/dev/null
   printf '{"slug":"%s","branch":"%s","commit":"%s","builtAt":"%s"}\n' "$slug" "$branch" "$commit" "$(date -u +%FT%TZ)" > "$tmp/dist/.preview.json"
 
   # Atomic replace so a preview is never half-published
