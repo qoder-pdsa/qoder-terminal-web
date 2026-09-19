@@ -6,7 +6,7 @@ import { urls } from "../playwright.config";
  * without it the suite is skipped, because a preview only exists after an explicit publish.
  */
 const slug = process.env.PREVIEW_SLUG;
-const previewUrl = `${urls.web}/preview/${slug}/`;
+const previewUrl = `${urls.webOrigin}/preview/${slug}/`;
 
 test.describe("frontend preview", () => {
   test.skip(!slug, "PREVIEW_SLUG not set");
@@ -34,12 +34,12 @@ test.describe("frontend preview", () => {
   });
 
   test("an unknown slug is a 404, not the production app", async ({ request }) => {
-    const resp = await request.get(`${urls.web}/preview/no-such-preview/`);
+    const resp = await request.get(`${urls.webOrigin}/preview/no-such-preview/`);
     expect(resp.status()).toBe(404);
   });
 
   test("production is unaffected", async ({ request }) => {
-    const html = await (await request.get(`${urls.web}/`)).text();
+    const html = await (await request.get(`${urls.webOrigin}/`)).text();
     expect(html).toContain("Qoder Terminal");
     expect(html).not.toContain("/preview/");
   });
