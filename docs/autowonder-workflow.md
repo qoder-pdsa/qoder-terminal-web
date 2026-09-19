@@ -2,6 +2,12 @@
 
 Platform: http://47.239.52.168 (qoder-wonder, AutoWonder 0.8.0 community edition), workspace **qoder-terminal** (id 10001).
 
+The platform frontend is built from the fork `~/Projects/qoder-wonder` (AutoWonder 0.8.0 community + zh-CN/en-US i18n + layout fixes; see its README).
+Deployed 2026-09-19 by rewriting `BOOT-INF/classes/static` inside `/opt/qoder-wonder/auto-wonder.jar` with `scripts/replace-frontend-static.sh`;
+the previous jar is kept as `/opt/qoder-wonder/auto-wonder.jar.bak-20260919111008`. Roll back with
+`cp /opt/qoder-wonder/auto-wonder.jar.bak-20260919111008 /opt/qoder-wonder/auto-wonder.jar && systemctl restart qoder-wonder`.
+The build artifact reaches the host through Cloud Assistant `RunCommand` in 12 KB base64 chunks (no SSH/OSS from the workstation).
+
 ## Infrastructure (Alibaba Cloud Hong Kong, one VPC)
 
 | Instance | Private IP | Role |
@@ -17,6 +23,7 @@ Initialized from the official `initialize-autowonder-harness` skill template, wi
 | Digital worker | roleCode | SDLC | Repo permission | Executor | Model |
 |---|---|---|---|---|---|
 | Full-Stack Developer | AW_FS_DEV | Full-Stack Development (4 steps) | WRITE | qt-fs-dev-1 | Qwen3.8-Max 1M |
+| Demo Developer | AW_FS_DEV | Demo Fast Track (3 steps) | WRITE (web only) | qt-demo-dev-1 | Qwen3.8-Max 1M |
 | Code Reviewer | AW_CR | Code Review (1 step) | READ | qt-cr-1 | Qwen3.8-Max 1M |
 | QA & Deployment Engineer | AW_QA | QA & Deployment (4 steps) | WRITE | qt-qa-1 | Qwen3.8-Max 1M |
 | Requirements Analyst | AW_REQ_CLARIFIER | — | READ | qt-req-1 | GLM-5.3 400K |
@@ -94,11 +101,18 @@ panel shows exactly the lanes that run.
 | 3. Review Handoff | Full-Stack Developer | Summary ≤ 10 KB, handoff to `AW_CR` with the preview URL first in the reason | 10 min |
 | Code Review (SDLC 10001) | Code Reviewer | Read-only review; fast-track PASS → HUMAN acceptance with `Accept at <preview URL>`; REJECT → developer on the same branch | 25 min |
 
-**How to trigger one on stage** (MCP or UI):
-1. **Before the demo, switch the Full-Stack Developer's default SDLC to 10003** (`set_agent_default_sdlc` → submit → publish; switch back to 10000 afterwards).
-   Passing `sdlcId` only at `assign_workitem` is not enough: a continuation dispatch created from a comment falls back to the agent's default SDLC (observed 2026-09-19 with dispatch 10014).
-2. Create a **TASK** work item from `backlog/DEMO-fast-track.md` (or any small frontend change) and assign it to Full-Stack Developer with **squad 10001**.
+**How to trigger one on stage** (MCP or UI): the flow is chosen by **who you assign the work item to** — each digital
+worker runs its own default SDLC, and cross-role routing is written into the step instructions.
+
+| Entry role | Default SDLC | Squad | Use for |
+|---|---|---|---|
+| Full-Stack Developer (10001) | 10000 Full-Stack Development → CR → QA → human | Standard Automated Delivery (10000) | REQ / BUG, backend or multi-repo work |
+| **Demo Developer (10006, executor `qt-demo-dev-1`)** | 10003 Demo Fast Track → CR → human | Demo Fast Track (10001) | frontend-only TASK items on stage |
+
+1. Create a **TASK** work item from `backlog/DEMO-fast-track.md` (or any small frontend change).
+2. Assign it to **Demo Developer** with squad **Demo Fast Track**. Nothing else to switch; the developer's default SDLC does the rest
+   (passing `sdlcId` at assignment is not enough on its own — a comment-triggered continuation falls back to the assignee's default SDLC).
 3. Watch the dispatch's step timeline: step 2 posts `Preview URL: http://47.242.87.16/preview/<slug>/`; the reviewer's handoff puts the same URL on your task card.
 4. Open the preview, accept, move the TASK to `done`, merge the branch into `main`, release with `deploy.sh sync main → build → up → health`.
 
-Measured on DEMO-1 (2026-09-19, dispatch 10016, before the review step existed): implementation 5 min, preview + e2e 13 min, handoff 3 min — 23 minutes to the human's task card. Expect ~12 more minutes for the review.
+Measured on DEMO-1 (2026-09-19): implementation 5 min, preview + e2e 13 min, handoff 3 min, review 11 min — about **35 minutes** from dispatch to the human's task card.
