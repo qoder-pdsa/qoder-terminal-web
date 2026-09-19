@@ -33,9 +33,11 @@ test.describe("frontend preview", () => {
     expect((await resp.json()).currency).toBe("HKD");
   });
 
-  test("an unknown slug is a 404, not the production app", async ({ request }) => {
-    const resp = await request.get(`${urls.webOrigin}/preview/no-such-preview/`);
-    expect(resp.status()).toBe(404);
+  test("an unknown or malformed slug is a 404, not the production app", async ({ request }) => {
+    for (const path of ["/preview/no-such-preview/", "/preview/", `/preview/${"a".repeat(41)}/`, "/preview/Bad_Slug/"]) {
+      const resp = await request.get(`${urls.webOrigin}${path}`);
+      expect(resp.status(), path).toBe(404);
+    }
   });
 
   test("production is unaffected", async ({ request }) => {
