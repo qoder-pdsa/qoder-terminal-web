@@ -26,7 +26,7 @@ test("invalid command shows an error", async ({ page }) => {
 });
 
 test("GP opens a candlestick chart panel with a canvas", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("./");
   await run(page, "700 GP");
   await expect(page.getByRole("heading", { name: "700.HK GP 3M" })).toBeVisible();
   const panel = page.getByTestId("graph-panel");
@@ -35,7 +35,7 @@ test("GP opens a candlestick chart panel with a canvas", async ({ page }) => {
 });
 
 test("GP takes an explicit range and rejects an unknown one", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("./");
   await run(page, "700 GP 6M");
   await expect(page.getByRole("heading", { name: "700.HK GP 6M" })).toBeVisible();
   await expect(page.getByTestId("graph-panel").locator("canvas").first()).toBeVisible();
