@@ -42,3 +42,7 @@ a { color: var(--tool); }
 /* The chart sizes itself to this box (autoSize); the clamp keeps it inside a 2x2 cell on
    desktop and inside the stacked mobile rows without touching the shared .panel layout. */
 .chart { width: 100%; height: clamp(200px, 38vh, 460px); }
+/* SMA overlay toggles in the GP panel header; a switched-off overlay reads muted and struck through. */
+.graph-toolbar { display: flex; gap: 6px; margin-bottom: 6px; }
+.graph-toolbar button { background: transparent; border: 1px solid var(--border); color: var(--amber); font: inherit; font-size: 11px; letter-spacing: 0.05em; padding: 1px 6px; cursor: pointer; }
+.graph-toolbar button[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }

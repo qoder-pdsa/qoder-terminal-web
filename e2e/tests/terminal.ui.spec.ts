@@ -44,6 +44,39 @@ test("GP takes an explicit range and rejects an unknown one", async ({ page }) =
   await expect(page.getByTestId("command-error")).toContainText("GP range must be one of 1M, 3M, 6M, 1Y");
 });
 
+test("GP SMA overlay toggles flip aria-pressed one at a time", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 GP");
+  const panel = page.getByTestId("graph-panel");
+  await expect(panel.locator("canvas").first()).toBeVisible();
+
+  const sma20 = panel.getByTestId("toggle-sma20");
+  const sma50 = panel.getByTestId("toggle-sma50");
+  await expect(sma20).toHaveAttribute("aria-pressed", "true");
+  await expect(sma50).toHaveAttribute("aria-pressed", "true");
+
+  await sma20.click();
+  await expect(sma20).toHaveAttribute("aria-pressed", "false");
+  await expect(sma50).toHaveAttribute("aria-pressed", "true");
+  await expect(panel.locator("canvas").first()).toBeVisible();
+
+  await sma20.click();
+  await expect(sma20).toHaveAttribute("aria-pressed", "true");
+});
+
+test("two GP panels keep their own overlay state", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 GP");
+  await run(page, "9988 GP");
+  const newest = page.getByTestId("graph-panel").nth(0);
+  const older = page.getByTestId("graph-panel").nth(1);
+
+  await newest.getByTestId("toggle-sma50").click();
+  await expect(newest.getByTestId("toggle-sma50")).toHaveAttribute("aria-pressed", "false");
+  await expect(newest.getByTestId("toggle-sma20")).toHaveAttribute("aria-pressed", "true");
+  await expect(older.getByTestId("toggle-sma50")).toHaveAttribute("aria-pressed", "true");
+});
+
 test("layout is a fixed 2x2 grid with empty slots", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByTestId("empty-slot")).toHaveCount(4);
