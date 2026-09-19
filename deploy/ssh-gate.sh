@@ -8,10 +8,11 @@ read -r -a args <<< "${SSH_ORIGINAL_COMMAND:-}"
 [ "${args[0]:-}" = "deploy.sh" ] && args=("${args[@]:1}")
 sub=${args[0]:-}; arg=${args[1]:-}
 case "$sub" in
-  build|db-status|db-backup|db-migrate|up|health|status) [ ${#args[@]} -eq 1 ] || { echo "denied: $sub takes no arguments" >&2; exit 2; } ;;
-  sync) [[ "$arg" =~ ^[A-Za-z0-9._/-]{1,100}$ ]] && [ ${#args[@]} -eq 2 ] || { echo "denied: sync <branch>" >&2; exit 2; } ;;
+  build|db-status|db-backup|db-migrate|up|health|status|preview-ls) [ ${#args[@]} -eq 1 ] || { echo "denied: $sub takes no arguments" >&2; exit 2; } ;;
+  sync|preview) [[ "$arg" =~ ^[A-Za-z0-9._/-]{1,100}$ ]] && [ ${#args[@]} -eq 2 ] || { echo "denied: $sub <branch>" >&2; exit 2; } ;;
+  preview-rm) [[ "$arg" =~ ^[a-z0-9-]{1,40}$ ]] && [ ${#args[@]} -eq 2 ] || { echo "denied: preview-rm <slug>" >&2; exit 2; } ;;
   logs) [[ "$arg" =~ ^(data|analyst|user|web|postgres)$ ]] && [ ${#args[@]} -eq 2 ] || { echo "denied: logs <data|analyst|user|web|postgres>" >&2; exit 2; } ;;
-  *) echo "denied: allowed = deploy.sh sync <branch>|build|db-status|db-backup|db-migrate|up|health|status|logs <service>" >&2; exit 2 ;;
+  *) echo "denied: allowed = deploy.sh sync <branch>|build|db-status|db-backup|db-migrate|up|health|status|logs <service>|preview <branch>|preview-ls|preview-rm <slug>" >&2; exit 2 ;;
 esac
 logger -t qt-ssh-gate "deploy.sh ${args[*]}"
 exec "$DEPLOY" "${args[@]}"

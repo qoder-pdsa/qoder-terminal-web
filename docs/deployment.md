@@ -39,6 +39,8 @@ Browsers only reach `qoder-terminal-app:80`, where the nginx gateway inside the 
 | Health check | `deploy.sh health` | Application deployment and health check |
 | Post-deployment tests | web repo `e2e` with `WEB_URL=http://<public IP>` etc. | Post-deployment tests |
 | View logs | `deploy.sh logs <service>` | Failure attribution |
+| Publish a branch preview | `deploy.sh preview <branch>` | Deployment and health check (frontend-only changes) |
+| List / remove previews | `deploy.sh preview-ls`, `deploy.sh preview-rm <slug>` | Housekeeping |
 
 ## Executor access
 
@@ -54,3 +56,29 @@ Services never migrate the database on startup; migrations only run via `db-migr
 so a feature branch that exists in one repo can be deployed without touching the others.
 QA deploys the **reviewed feature branch** directly; `main` is fast-forwarded by a human after acceptance,
 because the runtime policy on the executors refuses pushes to `main`.
+
+## Per-branch frontend previews
+
+`deploy.sh preview <branch>` gives a work item its own URL without touching production, the way Vercel/Railway
+preview deployments do:
+
+```
+deploy.sh preview feature/bl02-graph-price-panel-20260918123222
+→ http://47.242.87.16/preview/bl02-graph-price-panel-20260918123222/
+```
+
+- **Slug**: the branch name without its type prefix (`feature/`, `fix/`), lowercased, runs of anything outside
+  `[a-z0-9]` replaced by one dash, truncated to 40 characters (`deploy/preview-lib.sh`, unit-tested).
+- **Build**: a clean `git archive` of `origin/<branch>` is built in Docker with `VITE_BASE=/preview/<slug>/`; the
+  production checkout and images are never touched. The bundle lands in `/opt/qoder-terminal/previews/<slug>/`
+  (atomic replace), which the web container mounts read-only at `/usr/share/nginx/preview`.
+- **Routing**: nginx serves `/preview/<slug>/` with SPA fallback to that preview's own `index.html`; `index.html` is
+  `no-cache`, hashed assets are immutable; an unknown slug is a 404. `/` stays the production bundle.
+- **Shared backend**: a preview calls the same `/api/data`, `/api/analyst`, `/api/user` as production. Previews therefore
+  only show **frontend** changes; a branch that changes a backend contract still needs the production deployment.
+- **Retention**: at most 10 previews, none older than 7 days; both enforced on every `preview` run. `preview-ls` shows
+  slug, branch, commit, build time and size; `preview-rm <slug>` removes one (non-zero exit when it does not exist).
+- **Verification**: `PREVIEW_SLUG=<slug> WEB_URL=... DATA_URL=... npx playwright test -c e2e/playwright.config.ts --project=api`
+  runs `e2e/tests/preview.api.spec.ts` (skipped when `PREVIEW_SLUG` is unset).
+- **Release**: once a human accepts the preview, `main` is fast-forwarded and production is updated with
+  `deploy.sh sync main` → `build` → `up` → `health`.

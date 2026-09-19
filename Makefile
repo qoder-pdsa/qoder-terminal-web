@@ -5,6 +5,7 @@ dev:
 	npm run dev
 test:
 	npm test
+	bash deploy/preview-lib.test.sh
 lint:
 	npm run lint
 build:

@@ -11,13 +11,23 @@
 #   deploy.sh health          health checks; exits 0 only when all pass
 #   deploy.sh status          container status and currently deployed versions
 #   deploy.sh logs <service>  last 200 log lines of a service (data/analyst/user/web/postgres)
+#   deploy.sh preview <branch>   build that branch's frontend and publish it at /preview/<slug>/ (shared backend)
+#   deploy.sh preview-ls         list previews: slug, branch, commit, build time, size
+#   deploy.sh preview-rm <slug>  remove one preview
 set -euo pipefail
 
 ROOT=${QT_ROOT:-/opt/qoder-terminal}
 SRC=${QT_SRC:-$ROOT/src}
+PREVIEWS=${QT_PREVIEWS:-$ROOT/previews}
+PREVIEW_MAX=10          # keep at most this many previews
+PREVIEW_MAX_AGE_DAYS=7  # and none older than this
 REPOS=(qoder-terminal-data qoder-terminal-analyst qoder-terminal-user qoder-terminal-web)
 COMPOSE=(docker compose -f "$SRC/qoder-terminal-web/deploy/docker-compose.prod.yml")
 BASE_URL=${QT_BASE_URL:-http://127.0.0.1}
+PUBLIC_URL=${QT_PUBLIC_URL:-http://47.242.87.16}
+
+# shellcheck source=preview-lib.sh
+. "$(dirname "$(readlink -f "$0")")/preview-lib.sh"
 
 log() { printf '[deploy %s] %s\n' "$(date '+%F %T')" "$*"; }
 
@@ -117,6 +127,77 @@ cmd_status() {
   done
 }
 
+# --- per-branch frontend previews -------------------------------------------------------------
+# A preview is the web bundle of one branch, built with base /preview/<slug>/ and served by the production
+# gateway from $PREVIEWS/<slug>/ (mounted read-only into the web container). It talks to the shared backend.
+
+preview_meta() { # slug key
+  [ -f "$PREVIEWS/$1/.preview.json" ] || return 1
+  python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' "$PREVIEWS/$1/.preview.json" "$2"
+}
+
+cmd_preview() {
+  local branch=${1:?usage: deploy.sh preview <branch>}
+  local slug; slug=$(preview_slug "$branch"); preview_validate_slug "$slug"
+  local web="$SRC/qoder-terminal-web"
+  [ -d "$web/.git" ] || { log "ERROR $web is not a checkout; run deploy.sh sync main first"; exit 1; }
+  git -C "$web" fetch -q --prune origin
+  git -C "$web" rev-parse -q --verify "origin/$branch" >/dev/null || { log "ERROR origin/$branch does not exist in qoder-terminal-web"; exit 1; }
+  local commit; commit=$(git -C "$web" rev-parse --short "origin/$branch")
+
+  # Build from a clean export of the branch (the production checkout is never touched)
+  local tmp; tmp=$(mktemp -d "${TMPDIR:-/tmp}/qt-preview.XXXXXX")
+  trap 'rm -rf "$tmp"' EXIT
+  git -C "$web" archive "origin/$branch" | tar -x -C "$tmp"
+  local image="qoder-terminal/web-preview:$slug"
+  docker build -q --target build \
+    --build-arg VITE_BASE="/preview/$slug/" --build-arg VITE_DATA_URL=/api/data --build-arg VITE_ANALYST_URL=/api/analyst \
+    -t "$image" "$tmp" >/dev/null
+  local cid; cid=$(docker create "$image")
+  docker cp -q "$cid:/app/dist" "$tmp/dist"
+  docker rm -q "$cid" >/dev/null; docker rmi -q "$image" >/dev/null
+  printf '{"slug":"%s","branch":"%s","commit":"%s","builtAt":"%s"}\n' "$slug" "$branch" "$commit" "$(date -u +%FT%TZ)" > "$tmp/dist/.preview.json"
+
+  # Atomic replace so a preview is never half-published
+  mkdir -p "$PREVIEWS"; chmod 755 "$PREVIEWS"
+  rm -rf "$PREVIEWS/.$slug.new"; mv "$tmp/dist" "$PREVIEWS/.$slug.new"; chmod -R a+rX "$PREVIEWS/.$slug.new"
+  [ -d "$PREVIEWS/$slug" ] && mv "$PREVIEWS/$slug" "$PREVIEWS/.$slug.old"
+  mv "$PREVIEWS/.$slug.new" "$PREVIEWS/$slug"; rm -rf "$PREVIEWS/.$slug.old"
+  preview_prune "$slug"
+  log "preview $slug ← $branch @ $commit"
+  log "URL: $PUBLIC_URL/preview/$slug/"
+}
+
+# Keep the newest PREVIEW_MAX previews and drop anything older than PREVIEW_MAX_AGE_DAYS (never the one just built)
+preview_prune() {
+  local keep=$1 dir slug n=0
+  [ -d "$PREVIEWS" ] || return 0
+  for dir in $(ls -1td "$PREVIEWS"/*/ 2>/dev/null); do
+    slug=$(basename "$dir"); [ "$slug" = "$keep" ] && { n=$((n+1)); continue; }
+    n=$((n+1))
+    if [ $n -gt $PREVIEW_MAX ] || [ -n "$(find "$dir" -maxdepth 0 -mtime +$PREVIEW_MAX_AGE_DAYS)" ]; then
+      rm -rf "$dir"; log "pruned preview $slug"
+    fi
+  done
+}
+
+cmd_preview_ls() {
+  [ -d "$PREVIEWS" ] && [ -n "$(ls -A "$PREVIEWS" 2>/dev/null)" ] || { log "no previews"; return 0; }
+  printf '%-40s %-48s %-8s %-20s %s\n' SLUG BRANCH COMMIT BUILT SIZE
+  for dir in $(ls -1td "$PREVIEWS"/*/); do
+    local slug; slug=$(basename "$dir")
+    printf '%-40s %-48s %-8s %-20s %s\n' "$slug" "$(preview_meta "$slug" branch)" "$(preview_meta "$slug" commit)" \
+      "$(preview_meta "$slug" builtAt)" "$(du -sh "$dir" | cut -f1)"
+  done
+}
+
+cmd_preview_rm() {
+  local slug=${1:?usage: deploy.sh preview-rm <slug>}
+  preview_validate_slug "$slug"
+  [ -d "$PREVIEWS/$slug" ] || { log "ERROR no preview named '$slug' (see deploy.sh preview-ls)"; exit 1; }
+  rm -rf "$PREVIEWS/$slug"; log "removed preview $slug"
+}
+
 case "${1:-}" in
   sync) shift; cmd_sync "$@" ;;
   build) cmd_build ;;
@@ -127,5 +208,8 @@ case "${1:-}" in
   health) cmd_health ;;
   status) cmd_status ;;
   logs) shift; "${COMPOSE[@]}" logs --no-color --tail 200 "${1:?usage: deploy.sh logs <service>}" </dev/null ;;
-  *) sed -n '2,13p' "$0"; exit 2 ;;
+  preview) shift; cmd_preview "$@" ;;
+  preview-ls) cmd_preview_ls ;;
+  preview-rm) shift; cmd_preview_rm "$@" ;;
+  *) sed -n '2,16p' "$0"; exit 2 ;;
 esac
