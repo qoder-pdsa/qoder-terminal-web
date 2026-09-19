@@ -150,8 +150,9 @@ cmd_preview() {
   PREVIEW_TMP=$(mktemp -d "${TMPDIR:-/tmp}/qt-preview.XXXXXX"); local tmp=$PREVIEW_TMP
   trap 'rm -rf "${PREVIEW_TMP:-}"' EXIT
   git -C "$web" archive "origin/$branch" | tar -x -C "$tmp"
+  # Built with the deployment tooling's own Dockerfile.preview, so the branch's Dockerfile/vite config do not matter
   local image="qoder-terminal/web-preview:$slug"
-  docker build -q --target build \
+  docker build -q -f "$web/deploy/Dockerfile.preview" \
     --build-arg VITE_BASE="/preview/$slug/" --build-arg VITE_DATA_URL=/api/data --build-arg VITE_ANALYST_URL=/api/analyst \
     -t "$image" "$tmp" >/dev/null
   # A named helper container so a failed earlier run never blocks the next one

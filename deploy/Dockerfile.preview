@@ -1,0 +1,13 @@
+# Builds a per-branch frontend preview (deploy.sh preview <branch>). Owned by the deployment tooling, not by the
+# branch being previewed, so any branch can be previewed regardless of its own Dockerfile or vite config:
+# the base path is injected on the vite command line, which overrides the config.
+FROM node:22
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+ARG VITE_BASE=/
+ARG VITE_DATA_URL=/api/data
+ARG VITE_ANALYST_URL=/api/analyst
+ENV VITE_DATA_URL=${VITE_DATA_URL} VITE_ANALYST_URL=${VITE_ANALYST_URL} VITE_BASE=${VITE_BASE}
+RUN npm run build -- --base="$VITE_BASE"
