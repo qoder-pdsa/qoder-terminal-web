@@ -44,6 +44,18 @@ test("GP takes an explicit range and rejects an unknown one", async ({ page }) =
   await expect(page.getByTestId("command-error")).toContainText("GP range must be one of 1M, 3M, 6M, 1Y");
 });
 
+test("arrow keys recall this session's commands", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 Q");
+  await run(page, "9988.HK GP");
+
+  const input = page.getByTestId("command-input");
+  await input.press("ArrowUp");
+  await expect(input).toHaveValue("9988.HK GP");
+  await input.press("ArrowUp");
+  await expect(input).toHaveValue("700 Q");
+});
+
 test("layout is a fixed 2x2 grid with empty slots", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByTestId("empty-slot")).toHaveCount(4);
