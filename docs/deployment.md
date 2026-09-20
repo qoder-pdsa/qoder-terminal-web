@@ -85,15 +85,22 @@ deploy.sh preview feature/bl02-graph-price-panel-20260918123222
 
 ## Domains and HTTPS
 
-| URL | Host | Serves |
+| URL | Front door | Serves |
 |---|---|---|
-| `https://qoder.live` | qoder-terminal-app (47.242.87.16) | Production terminal; `www.qoder.live` and plain HTTP redirect here |
+| `https://qoder.live` | qoder-wonder-260917-app (47.239.52.168) → proxy to 10.23.1.193 | Production terminal; `www.qoder.live` and plain HTTP redirect here |
 | `https://qoder.live/preview/<slug>/` | same | Per-branch frontend previews |
-| `https://wonder.qoder.live` | qoder-wonder-260917-app (47.239.52.168) | AutoWonder platform (`AUTOWONDER_PUBLIC_BASE_URL`) |
+| `https://wonder.qoder.live` | same host, direct | AutoWonder platform (`AUTOWONDER_PUBLIC_BASE_URL`) |
 
-- DNS: Alibaba Cloud DNS zone `qoder.live` (A records `@`, `www` → 47.242.87.16; `wonder` → 47.239.52.168).
-- Certificates: Let's Encrypt via HTTP-01 on `/var/www/acme`, renewed daily by `/etc/cron.d/qoder-terminal-certbot` (app host) and
-  `/etc/cron.d/qoder-wonder-certbot` (platform host). On the app host `deploy/tls.sh issue|enable|status` manages it; the TLS server
-  blocks come from `deploy/tls/` and are mounted into the web container from `/opt/qoder-terminal/tls`. On the platform host the
-  equivalent is `/usr/local/bin/wonder-tls`.
+**Why the terminal is fronted by the platform host**: the terminal host's own EIP `47.242.87.16` is intermittently
+unreachable from Chinese ISPs (packets arrive, the return path is dropped), while `47.239.52.168` is reachable. So all three
+names resolve to the platform host, whose nginx (`/etc/nginx/conf.d/qoder-live.conf`) terminates TLS for `qoder.live` and
+reverse-proxies to the terminal gateway over the VPC with `X-Forwarded-Proto: https`. The terminal host stays directly
+usable by IP for QA, health checks and `deploy.sh`.
+
+- DNS: Alibaba Cloud DNS zone `qoder.live` (A records `@`, `www`, `wonder` → 47.239.52.168).
+- Certificates: Let's Encrypt via HTTP-01 on `/var/www/acme` of the platform host, which holds both `qoder.live` and
+  `wonder.qoder.live` and renews them daily from `/etc/cron.d/qoder-wonder-certbot`. `/usr/local/bin/wonder-tls` manages the
+  platform vhost. The terminal host keeps its own tooling (`deploy/tls.sh`, TLS blocks from `deploy/tls/` mounted at
+  `/opt/qoder-terminal/tls`) for the day its EIP becomes usable again; its port-80 redirect skips requests that already
+  arrive with `X-Forwarded-Proto: https`, which is what makes the proxy path work.
 - Access by IP and from `127.0.0.1` stays on plain HTTP, so health checks and QA over the private network (`http://10.23.1.193`) are unchanged.
