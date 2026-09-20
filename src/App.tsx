@@ -1,12 +1,14 @@
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent, type KeyboardEvent } from "react";
+import { back, current, EMPTY_HISTORY, forward, push, type HistoryState } from "./commands/history";
 import { parseCommand } from "./commands/parse";
 import { openPanel, toSlots, type OpenPanel } from "./layout/slots";
 import { panelTitle, renderPanel } from "./panels/registry";
 
 export function App() {
-  const [input, setInput] = useState("");
+  const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
   const [panels, setPanels] = useState<OpenPanel[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const input = current(history);
 
   const run = useCallback((raw: string) => {
     const command = parseCommand(raw);
@@ -21,7 +23,17 @@ export function App() {
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     run(input);
-    setInput("");
+    setHistory((prev) => push(prev, input));
+  };
+
+  const onHistoryKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHistory(back);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHistory(forward);
+    }
   };
 
   return (
@@ -35,7 +47,8 @@ export function App() {
         <input
           data-testid="command-input"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => setHistory((prev) => ({ ...prev, draft: e.target.value, cursor: -1 }))}
+          onKeyDown={onHistoryKey}
           placeholder="700 Q   |   9988.HK GP   |   ASK compare Tencent and Alibaba recently"
           autoFocus
         />
