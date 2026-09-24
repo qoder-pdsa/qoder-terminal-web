@@ -37,6 +37,10 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 .up { color: var(--up); }
 .down { color: var(--down); }
 .tool { color: var(--tool); }
+/* The quote change follows the HKEX candle palette (red = up), not the --up/--down text pair. */
+.quote-change[data-direction="up"] { color: var(--candle-up); }
+.quote-change[data-direction="down"] { color: var(--candle-down); }
+.quote-change[data-direction="flat"] { color: var(--muted); }
 .answer { white-space: pre-wrap; color: var(--text); font: inherit; }
 a { color: var(--tool); }
 /* The chart sizes itself to this box (autoSize); the clamp keeps it inside a 2x2 cell on
