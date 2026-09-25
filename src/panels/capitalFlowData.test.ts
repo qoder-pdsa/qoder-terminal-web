@@ -30,6 +30,17 @@ describe("formatAmount", () => {
   ])("%s → %s", (input, expected) => {
     expect(formatAmount(input)).toBe(expected);
   });
+
+  it.each([
+    ["100000000", "100M"],
+    ["120000000", "120M"],
+    ["12345678", "12.3M"],
+    ["1500000000", "1.5B"],
+    ["950", "950"],
+    ["-120000000", "-120M"],
+  ])("keeps every significant digit of %s → %s", (input, expected) => {
+    expect(formatAmount(input)).toBe(expected);
+  });
 });
 
 describe("netSign", () => {
