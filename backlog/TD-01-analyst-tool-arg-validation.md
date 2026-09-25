@@ -16,5 +16,7 @@ stub planner the arguments are synthesized internally, but once BL-05 lets a rea
 - [ ] Unit tests: valid args pass, a symbol like `../health` or `700.HK/x` is rejected without any HTTP call (`httpx.MockTransport` records zero requests)
 - [ ] `make lint test` passes; `tests/test_contract.py` unchanged
 
+**Delivered 2026-09-26** (analyst `f131e99`, work item #10017).
+
 ## Out of scope
 Changing the event schema or tool signatures.
