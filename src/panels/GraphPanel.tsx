@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CandlestickSeries, LineSeries, type IChartApi } from "lightweight-charts";
-import { DEFAULT_HISTORY_RANGE, fetchHistory, fetchIndicator, type HistoryRange } from "../api/data";
+import { fetchHistory, fetchIndicator, HISTORY_RANGES, type HistoryRange } from "../api/data";
 import { toChartData, type ChartData } from "./chartData";
 import { createTerminalChart, readChartTheme } from "./chartTheme";
 import {
@@ -22,10 +22,12 @@ type State =
 
 export function GraphPanel({
   symbol,
-  range = DEFAULT_HISTORY_RANGE,
+  range,
+  onRangeChange,
 }: {
   symbol: string;
-  range?: HistoryRange;
+  range: HistoryRange;
+  onRangeChange: (range: HistoryRange) => void;
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [overlayState, setOverlayState] = useState<OverlayState>(INITIAL_OVERLAY_STATE);
@@ -49,6 +51,7 @@ export function GraphPanel({
           setState({ status: "error", message: err instanceof Error ? err.message : String(err) });
         }
       });
+    // The cleanup aborts the previous range's in-flight requests, so a slow reply can never overwrite the selected range.
     return () => controller.abort();
   }, [symbol, range]);
 
@@ -64,6 +67,18 @@ export function GraphPanel({
   return (
     <div className="graph-panel" data-testid="graph-panel">
       <div className="graph-toolbar" data-testid="graph-toolbar">
+        {HISTORY_RANGES.map((option) => (
+          <button
+            key={option}
+            type="button"
+            className="range-button"
+            data-testid={`range-${option}`}
+            aria-pressed={option === range}
+            onClick={() => onRangeChange(option)}
+          >
+            {option}
+          </button>
+        ))}
         {OVERLAY_KEYS.map((key) => (
           <button
             key={key}
