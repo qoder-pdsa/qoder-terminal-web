@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { CandlestickSeries, HistogramSeries, LineSeries, type IChartApi } from "lightweight-charts";
-import { fetchHistory, fetchIndicator, HISTORY_RANGES, type HistoryRange } from "../api/data";
-import { toChartData, type ChartData } from "./chartData";
+import {
+  CandlestickSeries,
+  HistogramSeries,
+  LineSeries,
+  type IChartApi,
+  type ISeriesApi,
+  type MouseEventParams,
+  type SeriesType,
+} from "lightweight-charts";
+import { fetchHistory, fetchIndicator, HISTORY_RANGES, type Candle, type HistoryRange } from "../api/data";
+import { crosshairDay, formatCandleReadout, toChartData, type ChartData } from "./chartData";
 import { paneStretchFactors, VOLUME_HEIGHT_SHARE, VOLUME_PANE_INDEX } from "./chartPanes";
 import { createTerminalChart, readChartTheme } from "./chartTheme";
 import {
@@ -19,7 +27,7 @@ type State =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "empty" }
-  | { status: "ok"; data: ChartData };
+  | { status: "ok"; data: ChartData; candles: Candle[] };
 
 export function GraphPanel({
   symbol,
@@ -32,6 +40,7 @@ export function GraphPanel({
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const [overlayState, setOverlayState] = useState<OverlayState>(INITIAL_OVERLAY_STATE);
+  const [hovered, setHovered] = useState<Candle | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const toggle = (key: OverlayKey) => setOverlayState((prev) => toggleOverlay(prev, key));
@@ -39,6 +48,7 @@ export function GraphPanel({
   useEffect(() => {
     const controller = new AbortController();
     setState({ status: "loading" });
+    setHovered(null);
     Promise.all([
       fetchHistory(symbol, range, controller.signal),
       Promise.all(SMA_WINDOWS.map((window) => fetchIndicator(symbol, "sma", window, range, controller.signal))),
@@ -49,7 +59,7 @@ export function GraphPanel({
           up: theme.color("--candle-up"),
           down: theme.color("--candle-down"),
         });
-        setState(data.candles.length === 0 ? { status: "empty" } : { status: "ok", data });
+        setState(data.candles.length === 0 ? { status: "empty" } : { status: "ok", data, candles: history });
       })
       .catch((err: unknown) => {
         if (!controller.signal.aborted) {
@@ -65,11 +75,28 @@ export function GraphPanel({
     if (state.status !== "ok" || !container) return;
     // Redrawing from already-fetched data: toggling an overlay never refetches the series.
     const data: ChartData = { ...state.data, overlays: visibleOverlays(state.data.overlays, overlayState) };
-    const chart = mountChart(container, data);
+    const { chart, candleSeries } = mountChart(container, data);
     // Read back from the live chart, so the UI e2e fails if the volume pane ever goes missing.
     container.dataset.panes = String(chart.panes().length);
-    return () => chart.remove();
+
+    // The readout quotes the contract candle, never the plotted one: setData turned those prices into numbers.
+    const byDay = new Map(state.candles.map((candle) => [candle.time.slice(0, 10), candle]));
+    const onCrosshair = (param: MouseEventParams) => {
+      const day = crosshairDay(param.time);
+      // Only a day the candle series actually plotted has a contract candle behind it.
+      const candle = day !== undefined && param.seriesData.has(candleSeries) ? byDay.get(day) : undefined;
+      setHovered(candle ?? null);
+    };
+    chart.subscribeCrosshairMove(onCrosshair);
+    return () => {
+      chart.unsubscribeCrosshairMove(onCrosshair);
+      chart.remove();
+    };
   }, [state, overlayState]);
+
+  // Off the chart the crosshair reports nothing, so the line falls back to the last candle and is never empty.
+  const shown = state.status === "ok" ? (hovered ?? state.candles[state.candles.length - 1]) : undefined;
+  const readout = shown === undefined ? null : formatCandleReadout(shown);
 
   return (
     <div className="graph-panel" data-testid="graph-panel">
@@ -98,6 +125,13 @@ export function GraphPanel({
           </button>
         ))}
       </div>
+      {readout !== null && (
+        <p className="candle-readout" data-testid="candle-readout" data-direction={readout.direction}>
+          {`${readout.date}  O ${readout.open}  H ${readout.high}  L ${readout.low}  `}
+          <span className="candle-readout-close">{`C ${readout.close}`}</span>
+          {`  V ${readout.volume}`}
+        </p>
+      )}
       {state.status === "loading" && (
         <p className="muted">
           LOADING {symbol} {range}…
@@ -120,14 +154,17 @@ export function GraphPanel({
   );
 }
 
-function mountChart(container: HTMLElement, data: ChartData): IChartApi {
+function mountChart(container: HTMLElement, data: ChartData): {
+  chart: IChartApi;
+  candleSeries: ISeriesApi<SeriesType>;
+} {
   const theme = readChartTheme();
   const { color } = theme;
   const up = color("--candle-up");
   const down = color("--candle-down");
   const chart = createTerminalChart(container, theme);
 
-  const candles = chart.addSeries(CandlestickSeries, {
+  const candles: ISeriesApi<SeriesType> = chart.addSeries(CandlestickSeries, {
     upColor: up,
     downColor: down,
     wickUpColor: up,
@@ -167,5 +204,5 @@ function mountChart(container: HTMLElement, data: ChartData): IChartApi {
   chart.priceScale("right", VOLUME_PANE_INDEX).applyOptions({ scaleMargins: { top: 0.1, bottom: 0 } });
 
   chart.timeScale().fitContent();
-  return chart;
+  return { chart, candleSeries: candles };
 }
