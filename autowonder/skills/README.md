@@ -25,7 +25,9 @@ real, reusable lessons (and promote them to `SQUAD` scope) instead of letting th
 
 ## Publishing
 
-Packages are uploaded with `POST /api/skills/package` (multipart: `file` = `<name>.tar.gz` containing `SKILL.md`,
-`type=SKILL`, `providers=qoder`), bound with `POST /api/agents/{id}/skills {skillId}`, and the resulting draft worker
+Packages are uploaded with `POST /api/skills/package` (multipart: `file` = `<name>.zip` containing `SKILL.md` at the
+root, `type=SKILL`, `providers=qoder`). **Use zip, not tar.gz**: the upload endpoint accepts both, but the dispatch
+packager (`TaskPackager.extractCapability`) only reads zip, so a tar.gz skill fails every dispatch with
+`TASK_PACKAGE_CONFIG_ERROR: skill package must contain root SKILL.md`. Packages are bound bound with `POST /api/agents/{id}/skills {skillId}`, and the resulting draft worker
 versions go through `POST /api/agents/{id}/submit` → `/approve`. Updating a skill later is `PUT /api/skills/{id}/package`
 with a new archive; bound workers pick up the new version on their next dispatch.
