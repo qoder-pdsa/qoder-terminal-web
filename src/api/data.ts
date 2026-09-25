@@ -83,6 +83,21 @@ export interface CapitalFlow {
   distribution: { in: CapitalBuckets; out: CapitalBuckets; net: CapitalBuckets };
 }
 
+/** Mirrors Intraday; `points` is empty before the first trade of the session. */
+export interface IntradayPoint {
+  time: string;
+  price: string;
+  avgPrice: string;
+  volume: number;
+}
+
+export interface Intraday {
+  symbol: string;
+  currency: string;
+  prevClose: string;
+  points: IntradayPoint[];
+}
+
 /** The contract's `symbols` query takes at most this many symbols per call. */
 export const MAX_BATCH_SYMBOLS = 20;
 
@@ -147,4 +162,10 @@ export async function fetchCapitalFlow(symbol: string, signal?: AbortSignal): Pr
   const resp = await fetch(`${DATA_URL}/v1/capital-flow/${encodeURIComponent(symbol)}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as CapitalFlow;
+}
+
+export async function fetchIntraday(symbol: string, signal?: AbortSignal): Promise<Intraday> {
+  const resp = await fetch(`${DATA_URL}/v1/intraday/${encodeURIComponent(symbol)}`, { signal });
+  if (!resp.ok) throw await apiError(resp);
+  return (await resp.json()) as Intraday;
 }

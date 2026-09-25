@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { CandlestickSeries, ColorType, LineSeries, createChart, type IChartApi } from "lightweight-charts";
+import { CandlestickSeries, LineSeries, type IChartApi } from "lightweight-charts";
 import { DEFAULT_HISTORY_RANGE, fetchHistory, fetchIndicator, type HistoryRange } from "../api/data";
 import { toChartData, type ChartData } from "./chartData";
+import { createTerminalChart, readChartTheme } from "./chartTheme";
 import {
   INITIAL_OVERLAY_STATE,
   OVERLAY_KEYS,
@@ -95,30 +96,12 @@ export function GraphPanel({
   );
 }
 
-/** Read a color from the global stylesheet; the canvas cannot use `var()` itself. */
 function mountChart(container: HTMLElement, data: ChartData): IChartApi {
-  const root = getComputedStyle(document.documentElement);
-  const color = (name: string) => root.getPropertyValue(name).trim();
+  const theme = readChartTheme();
+  const { color } = theme;
   const up = color("--candle-up");
   const down = color("--candle-down");
-  const border = color("--border");
-
-  const chart = createChart(container, {
-    autoSize: true,
-    layout: {
-      background: { type: ColorType.Solid, color: color("--panel") },
-      textColor: color("--muted"),
-      fontFamily: root.fontFamily,
-      attributionLogo: false,
-    },
-    grid: { vertLines: { color: border }, horzLines: { color: border } },
-    rightPriceScale: { borderColor: border },
-    timeScale: { borderColor: border },
-    crosshair: {
-      horzLine: { labelBackgroundColor: color("--amber") },
-      vertLine: { labelBackgroundColor: color("--amber") },
-    },
-  });
+  const chart = createTerminalChart(container, theme);
 
   const candles = chart.addSeries(CandlestickSeries, {
     upColor: up,
