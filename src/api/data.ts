@@ -6,6 +6,12 @@ export interface Quote {
   price: string;
   change: string;
   changePercent: string;
+  open: string;
+  high: string;
+  low: string;
+  /** Shares traded this session; the contract's one integer field, 0 before the first trade. */
+  volume: number;
+  turnover: string;
   currency: string;
   asOf: string;
 }
