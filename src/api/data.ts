@@ -101,10 +101,22 @@ export interface Intraday {
 /** The contract's `symbols` query takes at most this many symbols per call. */
 export const MAX_BATCH_SYMBOLS = 20;
 
-/** Map the contract's Error body onto a thrown Error, falling back to the HTTP status. */
-async function apiError(resp: Response): Promise<Error> {
-  const body = (await resp.json().catch(() => null)) as { message?: string } | null;
-  return new Error(body?.message ?? `HTTP ${resp.status}`);
+/** The contract's Error body plus the HTTP status that carried it. */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/** Map the contract's Error body onto a thrown ApiError, falling back to the HTTP status. */
+async function apiError(resp: Response): Promise<ApiError> {
+  const body = (await resp.json().catch(() => null)) as { code?: string; message?: string } | null;
+  return new ApiError(resp.status, body?.code ?? "", body?.message ?? `HTTP ${resp.status}`);
 }
 
 export async function fetchQuote(symbol: string, signal?: AbortSignal): Promise<Quote> {

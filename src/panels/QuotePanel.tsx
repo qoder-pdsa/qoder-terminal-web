@@ -4,6 +4,7 @@ import { fetchIntraday, fetchQuote, type Intraday, type Quote } from "../api/dat
 import { exchangeTimeZone, formatClock } from "./capitalFlowData";
 import { createTerminalChart, readChartTheme } from "./chartTheme";
 import { toIntradayData } from "./intradayData";
+import { shouldKeepPolling } from "./polling";
 import { formatChange, formatHkTime } from "./quoteFormat";
 
 /** The quote and its intraday line are re-fetched this often while the panel is open. */
@@ -21,18 +22,24 @@ export function QuotePanel({ symbol }: { symbol: string }) {
   useEffect(() => {
     const controller = new AbortController();
     setState({ status: "loading" });
+    let timer: ReturnType<typeof setInterval> | undefined;
     const poll = () =>
       Promise.all([fetchQuote(symbol, controller.signal), fetchIntraday(symbol, controller.signal)])
         .then(([quote, intraday]) => setState({ status: "ok", quote, intraday }))
         .catch((err: unknown) => {
           if (controller.signal.aborted) return;
+          const message = err instanceof Error ? err.message : String(err);
+          if (!shouldKeepPolling(err)) {
+            // The data service says this symbol does not exist; only a different symbol may retry.
+            clearInterval(timer);
+            setState({ status: "error", message });
+            return;
+          }
           // A failed refresh keeps the last good quote on screen; only the first load shows the error.
-          setState((prev) =>
-            prev.status === "ok" ? prev : { status: "error", message: err instanceof Error ? err.message : String(err) },
-          );
+          setState((prev) => (prev.status === "ok" ? prev : { status: "error", message }));
         });
     void poll();
-    const timer = setInterval(() => void poll(), QUOTE_POLL_MS);
+    timer = setInterval(() => void poll(), QUOTE_POLL_MS);
     return () => {
       clearInterval(timer);
       controller.abort();
@@ -47,7 +54,7 @@ export function QuotePanel({ symbol }: { symbol: string }) {
   }, [state]);
 
   if (state.status === "loading") return <p className="muted">LOADING {symbol}…</p>;
-  if (state.status === "error") return <p className="down">ERROR: {state.message}</p>;
+  if (state.status === "error") return <p className="down" data-testid="quote-error">ERROR: {state.message}</p>;
 
   const { quote, intraday } = state;
   const change = formatChange(quote.change, quote.changePercent);
