@@ -14,6 +14,17 @@ describe("panelTitle", () => {
     expect(panelTitle({ kind: "function", code: "GP", symbol: "700.HK" })).toBe("700.HK GP 3M");
   });
 
+  it("renders the panel's own range once a range button was clicked", () => {
+    expect(panelTitle({ kind: "function", code: "GP", symbol: "700.HK", range: "3M" }, "1M")).toBe("700.HK GP 1M");
+    expect(panelTitle({ kind: "function", code: "GP", symbol: "700.HK", range: "6M" }, "1Y")).toBe("700.HK GP 1Y");
+    expect(panelTitle({ kind: "function", code: "GP", symbol: "700.HK" }, "6M")).toBe("700.HK GP 6M");
+  });
+
+  it("never appends a range segment to a non-GP heading", () => {
+    expect(panelTitle({ kind: "function", code: "Q", symbol: "700.HK" }, "1Y")).toBe("700.HK Q");
+    expect(panelTitle({ kind: "function", code: "N" }, "1Y")).toBe("N");
+  });
+
   it("renders `SYMBOL CODE` for Q with no range segment", () => {
     expect(panelTitle({ kind: "function", code: "Q", symbol: "700.HK" })).toBe("700.HK Q");
   });
