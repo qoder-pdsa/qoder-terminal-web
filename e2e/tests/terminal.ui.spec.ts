@@ -139,6 +139,56 @@ test("arrow keys recall this session's commands", async ({ page }) => {
   await expect(input).toHaveValue("700 Q");
 });
 
+test("Tab completes a symbol from the session and then a function code", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 Q");
+
+  const input = page.getByTestId("command-input");
+  await input.fill("70");
+  await expect(input).toHaveAttribute("data-completions", "700.HK");
+  await input.press("Tab");
+  await expect(input).toHaveValue("700.HK");
+
+  await input.pressSequentially(" G");
+  await expect(input).toHaveAttribute("data-completions", "700.HK GP");
+  await input.press("Tab");
+  await expect(input).toHaveValue("700.HK GP");
+
+  // Completion only drafts; the completed line was never submitted, so ↑ still recalls 700 Q.
+  await input.press("ArrowUp");
+  await expect(input).toHaveValue("700 Q");
+});
+
+test("Tab cycles through the candidates and Shift+Tab cycles back", async ({ page }) => {
+  await page.goto("./");
+  const input = page.getByTestId("command-input");
+  await input.fill("700 ");
+  await expect(input).toHaveAttribute(
+    "data-completions",
+    "700 Q,700 GP,700 N,700 W,700 CF",
+  );
+
+  await input.press("Tab");
+  await expect(input).toHaveValue("700 Q");
+  await input.press("Tab");
+  await expect(input).toHaveValue("700 GP");
+  await input.press("Shift+Tab");
+  await expect(input).toHaveValue("700 Q");
+  await input.press("Tab");
+  await input.press("Tab");
+  await expect(input).toHaveValue("700 N");
+});
+
+test("Tab with nothing to complete leaves the input and keeps the focus", async ({ page }) => {
+  await page.goto("./");
+  const input = page.getByTestId("command-input");
+  await input.fill("XYZ");
+  await expect(input).toHaveAttribute("data-completions", "");
+  await input.press("Tab");
+  await expect(input).toHaveValue("XYZ");
+  await expect(input).toBeFocused();
+});
+
 test("layout is a fixed 2x2 grid with empty slots", async ({ page }) => {
   await page.goto("./");
   await expect(page.getByTestId("empty-slot")).toHaveCount(4);
