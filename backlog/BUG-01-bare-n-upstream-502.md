@@ -5,6 +5,11 @@
 - **Squad**: Standard Automated Delivery
 - **Origin**: seen twice by the Demo Developer while verifying DEMO-5 (Playwright 30/31 on the first run, clean on rerun)
 
+## Root cause (QA, work item 10007, 2026-09-25)
+Confirmed from the production data logs: the six parallel `/v1/news` calls make Longbridge answer **HTTP 429 code `429003`
+("minimum 0.02 s between calls")**, which `providerError` maps to `502 provider_error`. Sequential calls each return 10
+items. So the fix is pacing/retry on the data side (and bounded concurrency on the web side), not a news-path bug.
+
 ## Background
 A bare `N` fans out one `GET /v1/news?symbol=` per symbol of the first watchlist group (up to 6, fired at once). One of
 them occasionally answers 502 `provider_error`. The panel already tolerates a partial failure (merges the feeds that
