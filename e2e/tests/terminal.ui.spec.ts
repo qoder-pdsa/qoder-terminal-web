@@ -11,6 +11,14 @@ test("short HK code opens a live quote", async ({ page }) => {
   await expect(page.getByTestId("quote-price")).toContainText(/\d+\.\d{4}\s*HKD/);
 });
 
+test("Q draws the intraday line against the previous close", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 Q");
+  await expect(page.getByTestId("quote-panel")).toContainText(/PREV \d+\.\d{4}/);
+  // Live data has no points before the first trade of the session; mock has them from 09:30 HKT.
+  await expect(page.getByTestId("quote-chart").locator("canvas").first().or(page.getByTestId("quote-intraday-empty"))).toBeVisible();
+});
+
 test("Q shows a directional change and the Hong Kong time", async ({ page }) => {
   await page.goto("./");
   await run(page, "700 Q");

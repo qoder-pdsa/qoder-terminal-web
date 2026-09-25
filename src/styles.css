@@ -77,3 +77,6 @@ a { color: var(--tool); }
 .cf-distribution { width: 100%; border-collapse: collapse; margin-top: 6px; }
 .cf-distribution th { font-weight: normal; text-align: left; font-size: 11px; letter-spacing: 0.05em; }
 .cf-distribution td, .cf-distribution th { padding: 2px 4px; border-bottom: 1px solid var(--border); }
+/* Q panel: the quote head stays compact so the intraday line gets the rest of the cell. */
+.quote-head { margin-bottom: 6px; }
+.chart-intraday { height: clamp(140px, 26vh, 320px); }

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ColorType, HistogramSeries, createChart, type IChartApi, type UTCTimestamp } from "lightweight-charts";
+import { HistogramSeries, type IChartApi, type UTCTimestamp } from "lightweight-charts";
 import { fetchCapitalFlow, type CapitalBuckets, type CapitalFlow } from "../api/data";
 import { exchangeTimeZone, formatAmount, formatClock, netSign, toFlowBars } from "./capitalFlowData";
+import { createTerminalChart, readChartTheme } from "./chartTheme";
 import { formatHkTime } from "./quoteFormat";
 
 type State = { status: "loading" } | { status: "error"; message: string } | { status: "ok"; data: CapitalFlow };
@@ -74,23 +75,13 @@ export function CapitalFlowPanel({ symbol }: { symbol: string }) {
 }
 
 function mountFlowChart(container: HTMLElement, data: CapitalFlow): IChartApi {
-  const root = getComputedStyle(document.documentElement);
-  const color = (name: string) => root.getPropertyValue(name).trim();
-  const border = color("--border");
+  const theme = readChartTheme();
+  const { color } = theme;
   const timeZone = exchangeTimeZone(data.symbol);
   const clock = (time: unknown) => formatClock(Number(time), timeZone);
-  const chart = createChart(container, {
-    autoSize: true,
-    layout: {
-      background: { type: ColorType.Solid, color: color("--panel") },
-      textColor: color("--muted"),
-      fontFamily: root.fontFamily,
-      attributionLogo: false,
-    },
-    grid: { vertLines: { color: border }, horzLines: { color: border } },
-    rightPriceScale: { borderColor: border },
+  const chart = createTerminalChart(container, theme, {
     localization: { timeFormatter: clock },
-    timeScale: { borderColor: border, timeVisible: true, secondsVisible: false, tickMarkFormatter: clock },
+    timeScale: { timeVisible: true, secondsVisible: false, tickMarkFormatter: clock },
   });
   const bars = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false });
   const flow = toFlowBars(data.flow, { positive: color("--candle-up"), negative: color("--candle-down") });

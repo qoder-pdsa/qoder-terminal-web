@@ -70,3 +70,16 @@ test("data: capital flow is decimal strings with a server-side net", async ({ re
   }
   expect((await request.get(`${urls.data}/v1/capital-flow/tencent`)).status()).toBe(400);
 });
+
+test("data: intraday line carries the previous close and ascending minute points", async ({ request }) => {
+  const intraday = await (await request.get(`${urls.data}/v1/intraday/700.HK`)).json();
+  expect(intraday.symbol).toBe("700.HK");
+  expect(intraday.prevClose).toMatch(DECIMAL);
+  expect(Array.isArray(intraday.points)).toBeTruthy(); // empty before the first trade of the session
+  for (let i = 0; i < Math.min(intraday.points.length, 5); i++) {
+    expect(intraday.points[i].price).toMatch(DECIMAL);
+    expect(intraday.points[i].avgPrice).toMatch(DECIMAL);
+    if (i > 0) expect(Date.parse(intraday.points[i].time)).toBeGreaterThan(Date.parse(intraday.points[i - 1].time));
+  }
+  expect((await request.get(`${urls.data}/v1/intraday/tencent`)).status()).toBe(400);
+});
