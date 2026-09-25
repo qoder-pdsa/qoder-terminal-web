@@ -17,5 +17,6 @@
 | [TD-02](TD-02-unknown-symbol-polling.md) | web: stop polling a 404 symbol | web | Single repo | From the DEMO-7 review |
 | [BL-11](BL-11-quote-ohlcv.md) | Q panel shows open / high / low / volume | data → web | Cross-repo | Contract extension, provider first — done 2026-09-26 |
 | [BUG-02](BUG-02-format-amount-100m.md) | `formatAmount` ≥ 100M renders 10× too small | web | Single repo | Found during BL-11 — closed 2026-09-26 |
+| [TD-03](TD-03-gateway-path-normalization.md) | gateway: reject `..%2f` path segments | web (nginx) → data | Cross-repo | Found by QA during TD-01 |
 
 Template: [_template.md](_template.md).
