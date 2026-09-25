@@ -1,8 +1,10 @@
 import { useCallback, useState, type FormEvent, type KeyboardEvent } from "react";
+import type { HistoryRange } from "./api/data";
 import { back, current, EMPTY_HISTORY, forward, push, type HistoryState } from "./commands/history";
 import { parseCommand } from "./commands/parse";
 import { openPanel, toSlots, type OpenPanel } from "./layout/slots";
 import { panelTitle, renderPanel } from "./panels/registry";
+import { panelRange, selectPanelRange } from "./panels/rangeState";
 
 export function App() {
   const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
@@ -18,6 +20,10 @@ export function App() {
     }
     setMessage(null);
     setPanels((prev) => openPanel(prev, { id: Date.now() + Math.random(), command }));
+  }, []);
+
+  const onSelectRange = useCallback((id: number, range: HistoryRange) => {
+    setPanels((prev) => prev.map((panel) => (panel.id === id ? selectPanelRange(panel, range) : panel)));
   }, []);
 
   const onSubmit = (e: FormEvent) => {
@@ -58,8 +64,8 @@ export function App() {
         {toSlots(panels).map((p, i) =>
           p ? (
             <section key={p.id} className="panel">
-              <h2>{panelTitle(p.command)}</h2>
-              {renderPanel(p.command, { run })}
+              <h2>{panelTitle(p.command, panelRange(p))}</h2>
+              {renderPanel(p.command, { run, panel: p, selectRange: (range) => onSelectRange(p.id, range) })}
             </section>
           ) : (
             <section key={`empty-${i}`} className="panel empty" data-testid="empty-slot">
