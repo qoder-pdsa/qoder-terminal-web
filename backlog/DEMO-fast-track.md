@@ -79,6 +79,7 @@ assign it to the Full-Stack Developer with `sdlcId: 10003`.
 - [ ] Pure, unit-tested `formatCandleReadout(candle)` next to `chartData.ts`: date as `YYYY-MM-DD`, prices passed through as the contract's decimal strings (no `Number()` on prices), volume via `formatAmount`; direction via `compareDecimal(close, open)`
 - [ ] Wired with lightweight-charts `chart.subscribeCrosshairMove` (the candle series' data for `param.time`; `param.time` undefined ⇒ last candle); the subscription is removed on unmount / chart re-create
 - [ ] Readout element has `data-testid="candle-readout"` and `data-direction="up|down|flat"`; it never triggers a refetch
-- [ ] UI e2e: after `700 GP`, `candle-readout` matches `/^\d{4}-\d{2}-\d{2}\s+O \d+\.\d{4}\s+H \d+\.\d{4}\s+L \d+\.\d{4}\s+C \d+\.\d{4}\s+V \S+$/`; hovering over the chart canvas at its left edge changes the date shown (compare before/after)
+- [x] UI e2e: after `700 GP`, `candle-readout` matches `/^\d{4}-\d{2}-\d{2}\s+O \d+\.\d{4}\s+H \d+\.\d{4}\s+L \d+\.\d{4}\s+C \d+\.\d{4}\s+V \S+$/`; hovering over the chart canvas at its left edge changes the date shown (compare before/after)
 - [ ] `make lint test` passes
 - Out of scope: readout for the intraday (Q) chart, SMA values in the readout, touch devices
+- Accepted 2026-09-26.
