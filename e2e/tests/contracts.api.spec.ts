@@ -6,9 +6,12 @@ const DECIMAL = /^-?\d+(\.\d+)?$/;
 test("data: HK quote uses HKD and decimal strings", async ({ request }) => {
   const quote = await (await request.get(`${urls.data}/v1/quotes/700.HK`)).json();
   expect(quote.currency).toBe("HKD");
-  for (const field of ["price", "change", "changePercent"]) {
+  for (const field of ["price", "change", "changePercent", "open", "high", "low", "turnover"]) {
     expect(quote[field], field).toMatch(DECIMAL);
   }
+  // volume is the contract's one integer; it is 0 before the first trade, never fractional
+  expect(Number.isInteger(quote.volume), "volume").toBeTruthy();
+  expect(quote.volume).toBeGreaterThanOrEqual(0);
 });
 
 test("data: SMA series aligns with history", async ({ request }) => {
@@ -43,6 +46,11 @@ test("data: batch quotes match single quotes in the requested order", async ({ r
   const single = await (await request.get(`${urls.data}/v1/quotes/700.HK`)).json();
   expect(batch[1].currency).toBe(single.currency);
   expect(batch[1].price).toMatch(DECIMAL);
+  // the batch body carries the session stats too, so the watchlist and the Q panel cannot drift
+  for (const field of ["open", "high", "low", "turnover"]) {
+    expect(batch[1][field], `batch.${field}`).toMatch(DECIMAL);
+  }
+  expect(Number.isInteger(batch[1].volume), "batch.volume").toBeTruthy();
   expect((await request.get(`${urls.data}/v1/quotes?symbols=tencent`)).status()).toBe(400);
   // symbols without a securities quote (options) are omitted, never a whole-batch failure
   const partial = await (await request.get(`${urls.data}/v1/quotes?symbols=700.HK,MSFT261016P420000.US`)).json();

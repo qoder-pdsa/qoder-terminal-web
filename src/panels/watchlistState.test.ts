@@ -13,8 +13,21 @@ import {
   type WatchlistSort,
 } from "./watchlistState";
 
+/** The session range mirrors the price so it stays inert; this suite sorts on price and changePercent. */
 function quote(symbol: string, price: string, changePercent = "0"): Quote {
-  return { symbol, price, change: "0", changePercent, currency: "HKD", asOf: "2026-09-25T00:00:00Z" };
+  return {
+    symbol,
+    price,
+    change: "0",
+    changePercent,
+    open: price,
+    high: price,
+    low: price,
+    volume: 1,
+    turnover: price,
+    currency: "HKD",
+    asOf: "2026-09-25T00:00:00Z",
+  };
 }
 
 /** A row whose quote has not arrived yet (options, a short reply) renders `…` and has no numbers to compare. */
