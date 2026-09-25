@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchQuotes, fetchWatchlists, type Quote, type Watchlist } from "../api/data";
+import { shouldKeepPolling } from "./polling";
 import { formatChange } from "./quoteFormat";
 import {
   ariaSort,
@@ -86,6 +87,7 @@ export function WatchlistPanel({ onOpen }: { onOpen: (command: string) => void }
     const symbols = symbolsKey.split(",");
     const controller = new AbortController();
     setQuotes(INITIAL_QUOTES);
+    let timer: ReturnType<typeof setInterval> | undefined;
     const poll = () =>
       fetchQuotes(symbols, controller.signal)
         .then((next) =>
@@ -93,11 +95,14 @@ export function WatchlistPanel({ onOpen }: { onOpen: (command: string) => void }
         )
         .catch((err: unknown) => {
           if (!controller.signal.aborted) {
-            setQuotes((prev) => ({ ...prev, error: err instanceof Error ? err.message : String(err) }));
+            const message = err instanceof Error ? err.message : String(err);
+            // A group the data service cannot resolve will not resolve later either.
+            if (!shouldKeepPolling(err)) clearInterval(timer);
+            setQuotes((prev) => ({ ...prev, error: message }));
           }
         });
     void poll();
-    const timer = setInterval(() => void poll(), WATCHLIST_POLL_MS);
+    timer = setInterval(() => void poll(), WATCHLIST_POLL_MS);
     return () => {
       clearInterval(timer);
       controller.abort();
