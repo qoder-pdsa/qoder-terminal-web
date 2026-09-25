@@ -16,5 +16,6 @@
 | [BUG-01](BUG-01-bare-n-upstream-502.md) | bare `N` intermittent upstream 502 | data → web | Cross-repo | Found while verifying DEMO-5 — closed 2026-09-25 after two rework rounds |
 | [TD-02](TD-02-unknown-symbol-polling.md) | web: stop polling a 404 symbol | web | Single repo | From the DEMO-7 review |
 | [BL-11](BL-11-quote-ohlcv.md) | Q panel shows open / high / low / volume | data → web | Cross-repo | Contract extension, provider first |
+| [BUG-02](BUG-02-format-amount-100m.md) | `formatAmount` ≥ 100M renders 10× too small | web | Single repo | Found during BL-11 |
 
 Template: [_template.md](_template.md).
