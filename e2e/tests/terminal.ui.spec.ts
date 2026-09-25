@@ -205,6 +205,77 @@ test("W lists the watchlist with live prices and opens a quote on click", async 
   await expect(page.locator("h2", { hasText: `${symbol} Q` })).toBeVisible();
 });
 
+// The e2e program cannot import src/ (it pulls in `import.meta.env`), so the CHANGE column is
+// compared here as contract decimal strings — scaled BigInts, never `Number` / `parseFloat`.
+const PERCENT = /\(([+-]?[\d.]+)%\)$/;
+
+function decimalOf(percent: string): bigint {
+  const [int, frac = ""] = percent.replace(/^[+-]/, "").split(".");
+  const scaled = BigInt(int + frac.padEnd(2, "0"));
+  return percent.startsWith("-") ? -scaled : scaled;
+}
+
+function ordered(values: readonly string[], direction: "descending" | "ascending"): boolean {
+  for (let i = 1; i < values.length; i++) {
+    const [a, b] = [decimalOf(values[i - 1]), decimalOf(values[i])];
+    if (direction === "descending" ? a < b : a > b) return false;
+  }
+  return true;
+}
+
+/** The percentages of the priced rows, plus whether every still-`…` row sits behind them. */
+async function changeColumn(page: import("@playwright/test").Page) {
+  const texts = await page.getByTestId("watchlist-change").allTextContents();
+  const percents = texts.map((t) => PERCENT.exec(t)?.[1] ?? null);
+  const firstMissing = percents.indexOf(null);
+  return {
+    percents: percents.filter((p): p is string => p !== null),
+    unpricedLast: firstMissing === -1 || percents.slice(firstMissing).every((p) => p === null),
+  };
+}
+
+test("W sorts by CHANGE and flips on the second click", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "W");
+  await expect(page.getByTestId("watchlist-change").first()).toHaveText(/^[▲▼]|^0\.0000/);
+
+  const price = page.getByTestId("sort-price");
+  const change = page.getByTestId("sort-change");
+  await expect(price).toHaveAttribute("aria-sort", "none");
+  await expect(change).toHaveAttribute("aria-sort", "none");
+
+  await change.click();
+  await expect(change).toHaveAttribute("aria-sort", "descending");
+  await expect(price).toHaveAttribute("aria-sort", "none");
+  await expect(change).toContainText("▼");
+  const descending = await changeColumn(page);
+  expect(descending.percents.length).toBeGreaterThan(1);
+  expect(descending.unpricedLast).toBe(true);
+  expect(ordered(descending.percents, "descending")).toBe(true);
+  // The first row carries the largest percentage of the visible rows.
+  expect(decimalOf(descending.percents[0])).toBe(
+    descending.percents.map(decimalOf).reduce((max, v) => (v > max ? v : max)),
+  );
+
+  await change.click();
+  await expect(change).toHaveAttribute("aria-sort", "ascending");
+  await expect(change).toContainText("▲");
+  const ascending = await changeColumn(page);
+  expect(ascending.unpricedLast).toBe(true);
+  expect(ordered(ascending.percents, "ascending")).toBe(true);
+  expect(decimalOf(ascending.percents[0])).toBe(
+    ascending.percents.map(decimalOf).reduce((min, v) => (v < min ? v : min)),
+  );
+
+  // PRICE is an independent key: clicking it restarts descending and clears the CHANGE marker.
+  await price.click();
+  await expect(price).toHaveAttribute("aria-sort", "descending");
+  await expect(change).toHaveAttribute("aria-sort", "none");
+  const prices = await page.getByTestId("watchlist-price").allTextContents();
+  const priced = prices.filter((p) => /^\d+\.\d+$/.test(p));
+  expect(ordered(priced, "descending")).toBe(true);
+});
+
 test("CF draws the capital flow bars and the order-size distribution", async ({ page }) => {
   await page.goto("./");
   await run(page, "700 CF");

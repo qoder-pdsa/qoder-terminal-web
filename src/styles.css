@@ -70,9 +70,14 @@ a { color: var(--tool); }
 .news-meta { font-size: 12px; }
 /* W panel: rows open a Q panel; a moved price flashes in the candle color once per poll. */
 .watchlist { width: 100%; border-collapse: collapse; }
-.watchlist tr { cursor: pointer; }
-.watchlist tr:hover td { background: #161616; }
+.watchlist tbody tr { cursor: pointer; }
+.watchlist tbody tr:hover td { background: #161616; }
 .watchlist td { padding: 3px 4px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.watchlist th { font-weight: normal; text-align: left; font-size: 11px; letter-spacing: 0.05em; padding: 3px 4px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.watchlist th.num { text-align: right; }
+/* PRICE and CHANGE sort the rows; the marker shows which way. */
+.watchlist th.sortable { cursor: pointer; }
+.watchlist th.sortable:hover, .watchlist th.sortable:focus-visible { color: var(--amber); }
 .watchlist .symbol { color: var(--amber); }
 .watchlist .name { overflow: hidden; text-overflow: ellipsis; max-width: 12ch; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }

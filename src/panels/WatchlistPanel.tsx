@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
 import { fetchQuotes, fetchWatchlists, type Quote, type Watchlist } from "../api/data";
 import { formatChange } from "./quoteFormat";
-import { flashDirections, selectGroup, WATCHLIST_POLL_MS, type FlashDirection } from "./watchlistState";
+import {
+  ariaSort,
+  flashDirections,
+  nextSort,
+  selectGroup,
+  sortRows,
+  WATCHLIST_POLL_MS,
+  type AriaSort,
+  type FlashDirection,
+  type SortKey,
+  type WatchlistRow,
+  type WatchlistSort,
+} from "./watchlistState";
 
 type ListsState = { status: "loading" } | { status: "error"; message: string } | { status: "ok"; lists: Watchlist[] };
 
@@ -14,11 +26,45 @@ interface QuotesState {
 
 const INITIAL_QUOTES: QuotesState = { quotes: null, flashes: {}, tick: 0, error: null };
 
+const SORT_ARROWS: Record<AriaSort, string> = { descending: " ▼", ascending: " ▲", none: "" };
+
+interface SortHeaderProps {
+  label: string;
+  testId: string;
+  column: SortKey;
+  sort: WatchlistSort | null;
+  onSort: (key: SortKey) => void;
+}
+
+/** A clickable PRICE / CHANGE column header; only the sorted one carries a direction. */
+function SortHeader({ label, testId, column, sort, onSort }: SortHeaderProps) {
+  const state = ariaSort(sort, column);
+  return (
+    <th
+      className="num sortable"
+      data-testid={testId}
+      aria-sort={state}
+      tabIndex={0}
+      onClick={() => onSort(column)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSort(column);
+        }
+      }}
+    >
+      {label}
+      {SORT_ARROWS[state]}
+    </th>
+  );
+}
+
 /** Watchlist groups with live prices; the quotes of the shown group are re-polled every few seconds. */
 export function WatchlistPanel({ onOpen }: { onOpen: (command: string) => void }) {
   const [lists, setLists] = useState<ListsState>({ status: "loading" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [quotes, setQuotes] = useState<QuotesState>(INITIAL_QUOTES);
+  const [sort, setSort] = useState<WatchlistSort | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -63,6 +109,15 @@ export function WatchlistPanel({ onOpen }: { onOpen: (command: string) => void }
   if (!group) return <p className="muted" data-testid="watchlist-empty">NO WATCHLIST GROUPS</p>;
 
   const bySymbol = new Map((quotes.quotes ?? []).map((q) => [q.symbol, q]));
+  const rows: WatchlistRow[] = group.symbols.map((s) => ({
+    symbol: s.symbol,
+    name: s.name,
+    quote: bySymbol.get(s.symbol) ?? null,
+  }));
+  // Derived per render, so the 5 s poll re-sorts the rows as prices move.
+  const ordered = sortRows(rows, sort);
+  const onSort = (key: SortKey) => setSort((prev) => nextSort(prev, key));
+
   return (
     <div data-testid="watchlist-panel">
       {lists.lists.length > 1 && (
@@ -85,20 +140,34 @@ export function WatchlistPanel({ onOpen }: { onOpen: (command: string) => void }
         <p className="muted" data-testid="watchlist-empty">EMPTY GROUP {group.name}</p>
       ) : (
         <table className="watchlist">
+          <thead>
+            <tr className="muted">
+              <th>SYMBOL</th>
+              <th>NAME</th>
+              <SortHeader label="PRICE" testId="sort-price" column="price" sort={sort} onSort={onSort} />
+              <SortHeader
+                label="CHANGE"
+                testId="sort-change"
+                column="changePercent"
+                sort={sort}
+                onSort={onSort}
+              />
+            </tr>
+          </thead>
           <tbody>
-            {group.symbols.map((s) => {
-              const q = bySymbol.get(s.symbol);
+            {ordered.map((r) => {
+              const q = r.quote;
               const change = q ? formatChange(q.change, q.changePercent) : null;
               return (
-                <tr key={s.symbol} data-testid="watchlist-row" onClick={() => onOpen(`${s.symbol} Q`)}>
-                  <td className="symbol">{s.symbol}</td>
-                  <td className="muted name">{s.name}</td>
+                <tr key={r.symbol} data-testid="watchlist-row" onClick={() => onOpen(`${r.symbol} Q`)}>
+                  <td className="symbol">{r.symbol}</td>
+                  <td className="muted name">{r.name}</td>
                   <td className="num">
                     <span
-                      key={`${s.symbol}-${quotes.tick}`}
+                      key={`${r.symbol}-${quotes.tick}`}
                       className="price"
                       data-testid="watchlist-price"
-                      data-flash={quotes.flashes[s.symbol]}
+                      data-flash={quotes.flashes[r.symbol]}
                     >
                       {q ? q.price : "…"}
                     </span>
