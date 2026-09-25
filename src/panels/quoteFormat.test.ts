@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatChange, formatHkTime, roundDecimalString } from "./quoteFormat";
+import { formatChange, formatHkTime, formatOhlc, roundDecimalString } from "./quoteFormat";
 
 describe("roundDecimalString", () => {
   it("rounds half up on the exact digits, where toFixed would round down", () => {
@@ -78,6 +78,33 @@ describe("formatChange", () => {
       text: "▲ +7.0000 (+1.64%)",
       direction: "up",
     });
+  });
+});
+
+describe("formatOhlc", () => {
+  it("labels the three contract strings in O/H/L order", () => {
+    expect(formatOhlc("431.6000", "436.2000", "430.8000")).toBe("O 431.6000  H 436.2000  L 430.8000");
+  });
+
+  it("passes the digits through with no rounding and no float artifacts", () => {
+    expect(formatOhlc("348.8646", "349.8065", "348.7146")).toBe("O 348.8646  H 349.8065  L 348.7146");
+    expect(formatOhlc("0.1000", "0.3000", "0.0700")).toBe("O 0.1000  H 0.3000  L 0.0700");
+  });
+
+  it("keeps a whole number as the contract sent it instead of appending decimals", () => {
+    expect(formatOhlc("388", "390", "385")).toBe("O 388  H 390  L 385");
+  });
+
+  it("matches the shape the Q panel is verified against", () => {
+    expect(formatOhlc("348.8646", "349.8065", "348.7146")).toMatch(
+      /^O \d+\.\d{4}\s+H \d+\.\d{4}\s+L \d+\.\d{4}$/,
+    );
+  });
+
+  it("shows the previous close three times before the session instead of a zero price", () => {
+    // qoder-terminal-data falls back to prevClose when Longbridge leaves Open/High/Low nil,
+    // so the panel must render that repeated value rather than blanking or zeroing the row.
+    expect(formatOhlc("380.0000", "380.0000", "380.0000")).toBe("O 380.0000  H 380.0000  L 380.0000");
   });
 });
 

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { BaselineSeries, LineSeries, type IChartApi, type UTCTimestamp } from "lightweight-charts";
 import { fetchIntraday, fetchQuote, type Intraday, type Quote } from "../api/data";
-import { exchangeTimeZone, formatClock } from "./capitalFlowData";
+import { exchangeTimeZone, formatAmount, formatClock } from "./capitalFlowData";
 import { createTerminalChart, readChartTheme } from "./chartTheme";
 import { toIntradayData } from "./intradayData";
-import { formatChange, formatHkTime } from "./quoteFormat";
+import { formatChange, formatHkTime, formatOhlc } from "./quoteFormat";
 
 /** The quote and its intraday line are re-fetched this often while the panel is open. */
 export const QUOTE_POLL_MS = 10_000;
@@ -60,6 +60,11 @@ export function QuotePanel({ symbol }: { symbol: string }) {
         </div>
         <div className="quote-change" data-testid="quote-change" data-direction={change.direction}>
           {change.text}
+        </div>
+        <div className="muted">
+          <span data-testid="quote-ohlc">{formatOhlc(quote.open, quote.high, quote.low)}</span>
+          {"  VOL "}
+          <span data-testid="quote-volume">{formatAmount(String(quote.volume))}</span>
         </div>
         <div className="muted">
           AS OF <span data-testid="quote-asof">{formatHkTime(quote.asOf)}</span> · PREV {intraday.prevClose}

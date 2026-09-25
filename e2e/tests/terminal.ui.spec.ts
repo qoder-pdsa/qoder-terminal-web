@@ -30,6 +30,17 @@ test("Q shows a directional change and the Hong Kong time", async ({ page }) => 
   await expect(page.getByTestId("quote-asof")).toHaveText(/^\d{2}:\d{2} HKT$/);
 });
 
+test("Q shows the session range and the traded volume", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 Q");
+
+  // The contract sends fixed-scale decimal strings and the panel passes them through, so the
+  // digits are asserted as text — comparing them as numbers would need a float in a price path.
+  await expect(page.getByTestId("quote-ohlc")).toHaveText(/^O \d+\.\d{4}\s+H \d+\.\d{4}\s+L \d+\.\d{4}$/);
+  // Live data reports 0 shares before the first trade, so "0" is a legal reading, not a gap.
+  await expect(page.getByTestId("quote-volume")).toHaveText(/^\d+(\.\d+)?[KMB]?$/);
+});
+
 test("ASK streams an answer and opens chart panels", async ({ page }) => {
   await page.goto("./");
   await run(page, "ASK compare Tencent and Alibaba");
