@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CandlestickSeries, HistogramSeries, LineSeries, type IChartApi } from "lightweight-charts";
 import { fetchHistory, fetchIndicator, HISTORY_RANGES, type HistoryRange } from "../api/data";
 import { toChartData, type ChartData } from "./chartData";
+import { paneStretchFactors, VOLUME_HEIGHT_SHARE, VOLUME_PANE_INDEX } from "./chartPanes";
 import { createTerminalChart, readChartTheme } from "./chartTheme";
 import {
   INITIAL_OVERLAY_STATE,
@@ -13,9 +14,6 @@ import {
 } from "./overlayState";
 
 const SMA_WINDOWS = [20, 50] as const;
-
-/** Candle area plus the volume area below it; the UI e2e reads this back as `data-panes`. */
-const CHART_PANES = 2;
 
 type State =
   | { status: "loading" }
@@ -68,6 +66,8 @@ export function GraphPanel({
     // Redrawing from already-fetched data: toggling an overlay never refetches the series.
     const data: ChartData = { ...state.data, overlays: visibleOverlays(state.data.overlays, overlayState) };
     const chart = mountChart(container, data);
+    // Read back from the live chart, so the UI e2e fails if the volume pane ever goes missing.
+    container.dataset.panes = String(chart.panes().length);
     return () => chart.remove();
   }, [state, overlayState]);
 
@@ -114,7 +114,7 @@ export function GraphPanel({
         </p>
       )}
       {state.status === "ok" && (
-        <div className="chart" ref={containerRef} data-testid="graph-chart" data-panes={CHART_PANES} />
+        <div className="chart" ref={containerRef} data-testid="graph-chart" />
       )}
     </div>
   );
@@ -137,12 +137,11 @@ function mountChart(container: HTMLElement, data: ChartData): IChartApi {
   });
   candles.setData(data.candles);
 
-  const volume = chart.addSeries(HistogramSeries, {
-    priceScaleId: "volume",
-    priceLineVisible: false,
-    lastValueVisible: false,
-    priceFormat: { type: "volume" },
-  });
+  const volume = chart.addSeries(
+    HistogramSeries,
+    { priceLineVisible: false, lastValueVisible: false, priceFormat: { type: "volume" } },
+    VOLUME_PANE_INDEX,
+  );
   volume.setData(data.volume);
 
   const overlayColors = [color("--amber"), color("--tool")];
@@ -158,9 +157,14 @@ function mountChart(container: HTMLElement, data: ChartData): IChartApi {
     line.setData(overlay.points);
   });
 
-  // The volume histogram keeps the bottom quarter; candles and overlays are squeezed above it.
-  chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
-  chart.priceScale("right").applyOptions({ scaleMargins: { top: 0.05, bottom: 0.3 } });
+  // Both panes need a factor: the candle pane would otherwise keep the library default of 1 and
+  // squeeze the histogram to a fifth of the chart instead of a quarter.
+  const stretch = paneStretchFactors(VOLUME_HEIGHT_SHARE);
+  chart.panes()[0].setStretchFactor(stretch.candles);
+  chart.panes()[VOLUME_PANE_INDEX].setStretchFactor(stretch.volume);
+
+  // No bottom margin, so the bars sit on the floor of their own pane.
+  chart.priceScale("right", VOLUME_PANE_INDEX).applyOptions({ scaleMargins: { top: 0.1, bottom: 0 } });
 
   chart.timeScale().fitContent();
   return chart;
