@@ -11,7 +11,7 @@ export type Command =
 // Up to 20 characters so option symbols from a watchlist (MSFT261016P420000.US) round-trip through W → Q.
 const FULL_SYMBOL = /^([0-9A-Z]{1,20})\.(HK|US|SH|SZ)$/;
 const HK_SHORT = /^\d{1,5}$/;
-const REQUIRES_SYMBOL: ReadonlySet<FunctionCode> = new Set(["Q", "GP", "CF"]);
+export const REQUIRES_SYMBOL: ReadonlySet<FunctionCode> = new Set(["Q", "GP", "CF"]);
 // CLEAR acts on the whole grid rather than on one symbol, so it never takes one.
 const REJECTS_SYMBOL: ReadonlySet<FunctionCode> = new Set(["CLEAR"]);
 
