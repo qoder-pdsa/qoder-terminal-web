@@ -50,6 +50,10 @@ a { color: var(--tool); }
 .graph-toolbar { display: flex; gap: 6px; margin-bottom: 6px; }
 .graph-toolbar button { background: transparent; border: 1px solid var(--border); color: var(--amber); font: inherit; font-size: 11px; letter-spacing: 0.05em; padding: 1px 6px; cursor: pointer; }
 .graph-toolbar button[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+/* Range buttons sit in the same toolbar but are an exclusive choice, so an unselected range is
+   only dimmed (never struck through) and the selected one gets the amber border. */
+.graph-toolbar button.range-button[aria-pressed="false"] { text-decoration: none; }
+.graph-toolbar button.range-button[aria-pressed="true"] { border-color: var(--amber); }
 /* Shared header buttons (watchlist groups); same look as the GP overlay toggles. */
 .panel-toolbar { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
 .panel-toolbar button { background: transparent; border: 1px solid var(--border); color: var(--muted); font: inherit; font-size: 11px; letter-spacing: 0.05em; padding: 1px 6px; cursor: pointer; }

@@ -63,6 +63,37 @@ test("GP takes an explicit range and rejects an unknown one", async ({ page }) =
   await expect(page.getByTestId("command-error")).toContainText("GP range must be one of 1M, 3M, 6M, 1Y");
 });
 
+test("GP range buttons refetch the range and keep the chart drawn", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 GP");
+  const panel = page.getByTestId("graph-panel");
+  await expect(panel.locator("canvas").first()).toBeVisible();
+  await expect(panel.getByTestId("range-3M")).toHaveAttribute("aria-pressed", "true");
+
+  await panel.getByTestId("range-1M").click();
+  await expect(panel.getByTestId("range-1M")).toHaveAttribute("aria-pressed", "true");
+  await expect(panel.getByTestId("range-3M")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("heading", { name: "700.HK GP 1M" })).toBeVisible();
+  await expect(panel.locator("canvas").first()).toBeVisible();
+});
+
+test("GP range state is per panel and starts on the opened range", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 GP 6M");
+  await run(page, "9988 GP");
+  const newest = page.getByTestId("graph-panel").nth(0);
+  const older = page.getByTestId("graph-panel").nth(1);
+  await expect(newest.getByTestId("range-3M")).toHaveAttribute("aria-pressed", "true");
+  await expect(older.getByTestId("range-6M")).toHaveAttribute("aria-pressed", "true");
+
+  await older.getByTestId("range-1Y").click();
+  await expect(older.getByTestId("range-1Y")).toHaveAttribute("aria-pressed", "true");
+  await expect(older.getByTestId("range-6M")).toHaveAttribute("aria-pressed", "false");
+  await expect(newest.getByTestId("range-3M")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { name: "700.HK GP 1Y" })).toBeVisible();
+  await expect(older.locator("canvas").first()).toBeVisible();
+});
+
 test("GP SMA overlay toggles flip aria-pressed one at a time", async ({ page }) => {
   await page.goto("./");
   await run(page, "700 GP");

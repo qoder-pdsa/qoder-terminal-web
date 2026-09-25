@@ -36,7 +36,7 @@ docker compose up --build                     # includes PostgreSQL and user (ru
 |---|---|---|
 | `700 Q` / `0700.HK Q` | Quote | ✅ |
 | `ASK compare Tencent and Alibaba` | AI analyst (streams tool calls, opens panels automatically) | ✅ |
-| `700 GP` / `700 GP 6M` | Candlesticks + SMA20 / SMA50 toggles | ✅ |
+| `700 GP` / `700 GP 6M` | Candlesticks + `1M` / `3M` / `6M` / `1Y` range buttons + SMA20 / SMA50 toggles | ✅ |
 | `N` / `700 N` | News for one symbol, or the first watchlist group merged and de-duplicated | ✅ |
 | `W` | Watchlist groups (the Longbridge account's; mock has one demo group) with prices polled every 5 s; click a row for `Q` | ✅ |
 | `700 CF` | Intraday capital flow: net inflow per minute + large / medium / small order distribution | ✅ |

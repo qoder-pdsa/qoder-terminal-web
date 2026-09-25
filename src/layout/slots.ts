@@ -1,3 +1,4 @@
+import type { HistoryRange } from "../api/data";
 import type { Command } from "../commands/parse";
 
 /** The terminal uses a fixed 2x2 grid. */
@@ -8,6 +9,8 @@ export type RunnableCommand = Exclude<Command, { kind: "invalid" }>;
 export interface OpenPanel {
   id: number;
   command: RunnableCommand;
+  /** This panel's own GP range choice; unset until a range button is clicked. */
+  range?: HistoryRange;
 }
 
 /** New panels go first; when the grid is full, the oldest panel is dropped. */
