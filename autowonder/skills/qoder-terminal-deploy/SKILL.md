@@ -18,6 +18,18 @@ reached from the executor as `ssh qoder-terminal-app deploy.sh <subcommand>` (Ba
 
 Check with `git ls-remote https://github.com/qoder-pdsa/<repo>.git <branch>` for each repo. Record the mode and the reason in the evidence.
 
+**Hard gate before any `sync` in production mode — for every repo the branch touches:**
+```
+git fetch origin main <branch>
+git merge-base --is-ancestor origin/main origin/<branch> && echo descendant || echo BEHIND
+```
+`deploy.sh sync <branch>` is a plain checkout. If the reviewed head is **BEHIND** `origin/main`, deploying it removes
+whatever `main` released since the branch was cut (BL-11 on 2026-09-26 silently dropped TD-02 and DEMO-8 from
+production for half an hour). Do not sync. Hand the item back to the developer with the exact commits `main` gained
+(`git log --oneline origin/<branch>..origin/main`) and ask for a rebase onto `origin/main` + push + incremental CR —
+exactly what happened on BUG-01 round 1. A developer or reviewer note saying "merge conflicts in N files" is the same
+signal: it means the branch is behind, so it is a BLOCK, not a footnote for the human.
+
 ## Step 2 — database
 
 Only `qoder-terminal-user` has a database (PostgreSQL, Flyway, migrations never run on startup).
