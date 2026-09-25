@@ -99,6 +99,18 @@ function mountIntradayChart(container: HTMLElement, intraday: Intraday): IChartA
     bottomFillColor2: `${down}66`,
     lineWidth: 1,
     priceFormat: { type: "price", precision: 4, minMove: 0.0001 },
+    // Keep the previous close inside the visible range even on a day spent entirely on one side of it.
+    autoscaleInfoProvider: (original: () => { priceRange: { minValue: number; maxValue: number } } | null) => {
+      const info = original();
+      if (!info) return info;
+      return {
+        ...info,
+        priceRange: {
+          minValue: Math.min(info.priceRange.minValue, data.baseline),
+          maxValue: Math.max(info.priceRange.maxValue, data.baseline),
+        },
+      };
+    },
   });
   price.setData(data.prices.map(stamp));
   price.createPriceLine({ price: data.baseline, color: color("--muted"), lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "PREV" });
