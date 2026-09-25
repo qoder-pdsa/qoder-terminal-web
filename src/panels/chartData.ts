@@ -1,4 +1,6 @@
+import type { Time } from "lightweight-charts";
 import type { Candle, IndicatorSeries } from "../api/data";
+import { formatAmount } from "./capitalFlowData";
 import { compareDecimal } from "./watchlistState";
 
 /** A candle the chart library can plot: numbers, and a `YYYY-MM-DD` business day. */
@@ -79,4 +81,50 @@ export function toChartData(
       color: volumeBarColor(candle.open, candle.close, colors),
     })),
   };
+}
+
+/** One crosshair line: the hovered candle as the panel renders it under the GP toolbar. */
+export interface CandleReadout {
+  date: string;
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  direction: "up" | "down" | "flat";
+}
+
+/** A doji reads as flat here, unlike `volumeBarColor`, which has only two colors to choose from. */
+function candleDirection(open: string, close: string): CandleReadout["direction"] {
+  const order = compareDecimal(close, open);
+  return order > 0 ? "up" : order < 0 ? "down" : "flat";
+}
+
+/**
+ * The crosshair readout for one contract candle. Prices stay the contract's decimal strings — a
+ * chart number has already lost the scale the terminal displays — and only the volume is compacted.
+ */
+export function formatCandleReadout(candle: Candle): CandleReadout {
+  return {
+    date: chartDate(candle.time),
+    open: candle.open,
+    high: candle.high,
+    low: candle.low,
+    close: candle.close,
+    volume: formatAmount(String(candle.volume)),
+    direction: candleDirection(candle.open, candle.close),
+  };
+}
+
+/**
+ * The `YYYY-MM-DD` a crosshair event points at, or undefined when it points at nothing.
+ *
+ * `setData` rewrites the plotted business-day strings into `{ year, month, day }` in place, so the
+ * time the library reports back is the object form and has to be padded again to match the contract.
+ */
+export function crosshairDay(time: Time | undefined): string | undefined {
+  if (typeof time === "string") return chartDate(time);
+  if (typeof time !== "object") return undefined;
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${time.year}-${pad(time.month)}-${pad(time.day)}`;
 }
