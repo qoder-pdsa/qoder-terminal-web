@@ -13,6 +13,8 @@ Two failure modes seen repeatedly:
 1. **Every Playwright `ui` test times out** (`Test timeout of 30000ms exceeded` while creating the browser context or in `page.goto`) while the `api` project passes and `curl` of the same page returns in milliseconds. That is memory starvation on the executor, not an application defect. It disappeared with the 2 → 4 GB upgrade with no code change.
 2. **The runtime's `repo-checkout` helper answers HTTP 500 `network access is disabled and repo is not cached`** even though the dispatch package allows network. Plain `git clone` / `git fetch` from Bash works.
 
+Toolchain on the executor (shared `~/.local`, visible from every executor HOME): Go, Node, qodercli 1.1.54, and — since 2026-09-25 — `uv 0.12` with CPython 3.12.14 (`uv python find 3.12`). `uv sync --frozen` in the analyst repo is the developer's job. No Docker. Note: `uv` searches for `uv.toml` upward from the current directory, so run it from inside the workspace, never from `/`.
+
 ## How to apply
 
 - Before reporting a uniform `ui` failure as a bug: `free -m`, `curl -sS -o /dev/null -w '%{http_code} %{time_total}' <url>`, and run the suite once with `--workers=1`. Record the numbers in the evidence.
