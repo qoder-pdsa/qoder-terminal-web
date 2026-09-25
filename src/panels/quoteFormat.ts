@@ -70,6 +70,14 @@ export function formatChange(change: string, changePercent: string): FormattedCh
   return { text: `${ARROW[direction]} ${signedChange} (${signedPercent}%)`, direction };
 }
 
+/**
+ * Labels the session range for the Q panel. The contract already sends fixed-scale decimal
+ * strings, so this only concatenates: rounding or parsing here would put a float in a price path.
+ */
+export function formatOhlc(open: string, high: string, low: string): string {
+  return `O ${open}  H ${high}  L ${low}`;
+}
+
 /** Renders an ISO-8601 timestamp on the Hong Kong wall clock as `HH:mm HKT`. */
 export function formatHkTime(asOf: string): string {
   const parts = HK_TIME.formatToParts(new Date(asOf));
