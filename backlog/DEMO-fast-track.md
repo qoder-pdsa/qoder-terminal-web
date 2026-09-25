@@ -38,7 +38,7 @@ assign it to the Full-Stack Developer with `sdlcId: 10003`.
 
 ## DEMO-5 · Close a panel and CLEAR the grid
 - **Repo**: qoder-terminal-web (frontend only)
-- Goal: every open panel header gets a small `×` on the right that closes just that panel (its slot becomes empty again, other panels keep their positions); typing `CLEAR` in the command bar closes all panels. `CLEAR` is a function code like `N` / `W` (no symbol), listed in the top-bar hint.
+- Goal: every open panel header gets a small `×` on the right that closes just that panel; typing `CLEAR` in the command bar closes all panels. Accepted 2026-09-25 as delivered: closing a panel compacts the grid (remaining panels keep their newest-first order and move up), which is the existing slot model. `CLEAR` is a function code like `N` / `W` (no symbol), listed in the top-bar hint.
 - [ ] `src/layout/slots.ts` gains pure, unit-tested `closePanel(prev, id)` (immutable, order of the remaining panels unchanged) and the `CLEAR` handling stays in `App.tsx`/`parse.ts` — `parseCommand("clear")` yields `{ kind: "function", code: "CLEAR" }` and `"700 CLEAR"` is rejected
 - [ ] The `×` has `data-testid="close-panel"` and `aria-label="Close <title>"`; closing a polling panel (`Q`, `W`) must stop its interval (existing `useEffect` cleanup)
 - [ ] UI e2e: open `700 Q` and `9988 Q`, click the first `close-panel`, expect one `quote-panel` left and three `empty-slot`; then `CLEAR` → four `empty-slot`
