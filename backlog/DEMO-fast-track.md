@@ -44,3 +44,21 @@ assign it to the Full-Stack Developer with `sdlcId: 10003`.
 - [ ] UI e2e: open `700 Q` and `9988 Q`, click the first `close-panel`, expect one `quote-panel` left and three `empty-slot`; then `CLEAR` → four `empty-slot`
 - [ ] `make lint test` passes
 - Out of scope: drag/reorder, keyboard shortcuts, remembering closed panels
+
+## DEMO-6 · W panel: sort by price or change
+- **Repo**: qoder-terminal-web (frontend only)
+- Goal: the `W` panel's `PRICE` and `CHANGE` column headers become clickable; the first click sorts descending, the second ascending, a click on the other header switches the key. The active header shows `▼` / `▲`; with no sort the rows keep the watchlist's own order. Sorting is per panel and survives the 5 s quote refresh (rows re-sort as prices move). Rows whose quote is still `…` (no quote, e.g. options) sort last in either direction.
+- [ ] Pure, unit-tested `sortRows(rows, sort)` next to `watchlistState.ts`; immutable; ties keep the original order (stable); comparisons of price / change / changePercent follow the project rule — contract decimal strings are compared with `compareDecimal`, never converted with `Number()` / `parseFloat`
+- [ ] Headers have `data-testid="sort-price"` / `sort-change"` and `aria-sort="descending|ascending|none"`; the sort key is `changePercent` for the CHANGE column
+- [ ] UI e2e: after `W`, clicking `sort-change` makes the first row's `watchlist-change` the largest percentage of the visible rows and sets `aria-sort="descending"`; a second click flips it
+- [ ] `make lint test` passes
+- Out of scope: sorting by name/symbol, persisting the sort, multi-column sort
+
+## DEMO-7 · Command bar: Tab completion
+- **Repo**: qoder-terminal-web (frontend only)
+- Goal: pressing `Tab` in the command bar completes the token under the cursor. A first token completes to a **symbol used earlier in this session** (from the command history, most recent first, e.g. `70` → `700.HK`) or to a function code without symbol (`N`, `W`, `CLEAR`); a second token completes to a function code (`700 G` → `700 GP`). Repeated `Tab` cycles through the candidates; `Shift+Tab` cycles backwards; the completed input is placed with the cursor at the end. `Tab` with no candidates does nothing (focus stays in the input). ↑ / ↓ history recall keeps working exactly as today.
+- [ ] Pure, unit-tested `complete(input, candidates, cycle)` in `src/commands/complete.ts` (case-insensitive prefix match, candidates de-duplicated, immutable); candidates come from `FUNCTION_CODES` and the symbols found in `HistoryState.entries`
+- [ ] The input keeps `data-testid="command-input"`; the current candidate list is exposed as `data-completions="700.HK,700 GP"` (comma-separated) on the input for tests, empty when none
+- [ ] UI e2e: run `700 Q`, type `70`, press `Tab` → input is `700.HK`; type ` G`, press `Tab` → `700.HK GP`; ↑ still recalls `700 Q`
+- [ ] `make lint test` passes
+- Out of scope: a visual dropdown, completing ranges, fuzzy matching, company names
