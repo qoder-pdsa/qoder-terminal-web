@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchNews, fetchWatchlists, type NewsItem } from "../api/data";
-import { DEFAULT_NEWS_SYMBOLS, MAX_NEWS_SYMBOLS, mergeNews, relativeTime } from "./newsFormat";
+import { loadMergedNews } from "./newsFeeds";
+import { DEFAULT_NEWS_SYMBOLS, MAX_NEWS_SYMBOLS, relativeTime } from "./newsFormat";
 
 const PER_SYMBOL_LIMIT = 20;
 const MERGED_PER_SYMBOL_LIMIT = 10;
@@ -16,7 +17,7 @@ export function NewsPanel({ symbol }: { symbol?: string }) {
     setState({ status: "loading" });
     const load = symbol
       ? fetchNews(symbol, PER_SYMBOL_LIMIT, controller.signal)
-      : loadMergedNews(controller.signal);
+      : mergedNews(controller.signal);
     load
       .then((items) => setState({ status: "ok", items }))
       .catch((err: unknown) => {
@@ -48,18 +49,13 @@ export function NewsPanel({ symbol }: { symbol?: string }) {
   );
 }
 
-/** Symbols of the first watchlist group, falling back to the defaults; each symbol is one request. */
-async function loadMergedNews(signal: AbortSignal): Promise<NewsItem[]> {
+/** Merged news for the first watchlist group, fetched a bounded number of symbols at a time. */
+async function mergedNews(signal: AbortSignal): Promise<NewsItem[]> {
   const symbols = await watchlistSymbols(signal);
-  const feeds = await Promise.allSettled(symbols.map((s) => fetchNews(s, MERGED_PER_SYMBOL_LIMIT, signal)));
-  const ok = feeds.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
-  if (ok.length === 0) {
-    const first = feeds.find((r) => r.status === "rejected");
-    throw first && first.status === "rejected" ? first.reason : new Error("no news feeds available");
-  }
-  return mergeNews(ok);
+  return loadMergedNews(symbols, MERGED_PER_SYMBOL_LIMIT, fetchNews, signal);
 }
 
+/** Symbols of the first watchlist group, falling back to the defaults. */
 async function watchlistSymbols(signal: AbortSignal): Promise<string[]> {
   try {
     const lists = await fetchWatchlists(signal);
