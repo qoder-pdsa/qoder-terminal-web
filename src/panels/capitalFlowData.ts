@@ -30,12 +30,17 @@ const UNITS = [
   { threshold: 1e3, suffix: "K" },
 ] as const;
 
+/** Trailing zeros may only leave the fraction: "1.50" → "1.5", "2.00" → "2", but "100" stays "100". */
+function stripFractionZeros(digits: string): string {
+  return digits.includes(".") ? digits.replace(/0+$/, "").replace(/\.$/, "") : digits;
+}
+
 /** Compact display of an amount ("12.3M"); display only, never fed back into arithmetic. */
 export function formatAmount(value: string): string {
   const n = decimal(value);
   const abs = Math.abs(n);
   for (const { threshold, suffix } of UNITS) {
-    if (abs >= threshold) return `${(n / threshold).toPrecision(3).replace(/\.?0+$/, "")}${suffix}`;
+    if (abs >= threshold) return `${stripFractionZeros((n / threshold).toPrecision(3))}${suffix}`;
   }
   return String(Math.round(n));
 }
