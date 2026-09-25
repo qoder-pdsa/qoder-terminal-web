@@ -14,5 +14,6 @@
 | [BL-10](BL-10-branch-previews.md) | Per-branch frontend previews | web | Single repo | Acceptance sees the change before merge — done |
 | [TD-01](TD-01-analyst-tool-arg-validation.md) | analyst: validate tool args before URL interpolation | analyst | Single repo | Hardening before BL-05 (from the BL-06-2 review) |
 | [BUG-01](BUG-01-bare-n-upstream-502.md) | bare `N` intermittent upstream 502 | data → web | Cross-repo | Found while verifying DEMO-5 |
+| [TD-02](TD-02-unknown-symbol-polling.md) | web: stop polling a 404 symbol | web | Single repo | From the DEMO-7 review |
 
 Template: [_template.md](_template.md).
