@@ -26,11 +26,13 @@ bare-`N` panel is stable (5/5 + 3/3 runs), but a cold 6-parallel API burst right
 
 ## Acceptance criteria
 - [x] Reproduce with the production data logs (`deploy.sh logs data`, look for `provider failure … news`) and name the upstream error code — `429003`
-- [ ] (amended) On production, after a warm-up of 30 news calls in 60 s, a cold 6-parallel `/v1/news` burst returns 6/6 200, twice
-- [ ] data: news fetches for a burst of symbols share a short-TTL cache like history/intraday (`provider.Cached`), and a rate-limit answer is retried once with backoff before becoming a 502
-- [ ] web: `N` requests the feeds with bounded concurrency (e.g. 2 at a time) instead of all at once
-- [ ] e2e "bare N merges several symbols' news" passes 5 consecutive runs against production
-- [ ] `make lint test` passes in both repos
+- [x] (amended) On production, after a warm-up of 30 news calls in 60 s, a cold 6-parallel `/v1/news` burst returns 6/6 200, twice — QA 2× and human 2× on 2026-09-25 21:30 HKT
+- [x] data: 30 s coalescing news cache + `newsPacer` (≥ 20 ms between upstream calls) + 429 retry ladder 100/300/900 ms with jitter (`707c2fa`)
+- [x] web: bounded fan-out of 2 (`0067783`)
+- [x] e2e "bare N merges several symbols' news" passes 5 consecutive runs against production
+- [x] `make lint test` passes in both repos
+
+**Closed 2026-09-25** after two rework rounds (QA: web branch behind main; human: single retry insufficient under a saturated window).
 
 ## Out of scope
 Changing which symbols a bare `N` covers.
