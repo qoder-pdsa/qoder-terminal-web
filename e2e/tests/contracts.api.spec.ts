@@ -36,3 +36,34 @@ test("analyst → data: ASK streams tool calls and a cited answer", async ({ req
   expect(answer.markdown).toContain("700.HK");
   expect(answer.citations.length).toBeGreaterThan(0);
 });
+
+test("data: batch quotes match single quotes in the requested order", async ({ request }) => {
+  const batch = await (await request.get(`${urls.data}/v1/quotes?symbols=9988.HK,700.HK`)).json();
+  expect(batch.map((q: { symbol: string }) => q.symbol)).toEqual(["9988.HK", "700.HK"]);
+  const single = await (await request.get(`${urls.data}/v1/quotes/700.HK`)).json();
+  expect(batch[1].currency).toBe(single.currency);
+  expect(batch[1].price).toMatch(DECIMAL);
+  expect((await request.get(`${urls.data}/v1/quotes?symbols=tencent`)).status()).toBe(400);
+});
+
+test("data: watchlists carry named symbols", async ({ request }) => {
+  const lists = await (await request.get(`${urls.data}/v1/watchlists`)).json();
+  expect(Array.isArray(lists)).toBeTruthy();
+  for (const list of lists) {
+    expect(typeof list.id).toBe("string");
+    expect(typeof list.name).toBe("string");
+    for (const s of list.symbols) expect(s.symbol).toMatch(/^[0-9A-Z]{1,6}\.(HK|US|SH|SZ)$/);
+  }
+});
+
+test("data: capital flow is decimal strings with a server-side net", async ({ request }) => {
+  const cf = await (await request.get(`${urls.data}/v1/capital-flow/700.HK`)).json();
+  expect(cf.symbol).toBe("700.HK");
+  expect(cf.currency).toBe("HKD");
+  expect(cf.flow.length).toBeGreaterThan(0);
+  expect(cf.flow[0].inflow).toMatch(DECIMAL);
+  for (const side of ["in", "out", "net"]) {
+    for (const bucket of ["large", "medium", "small"]) expect(cf.distribution[side][bucket], `${side}.${bucket}`).toMatch(DECIMAL);
+  }
+  expect((await request.get(`${urls.data}/v1/capital-flow/tencent`)).status()).toBe(400);
+});

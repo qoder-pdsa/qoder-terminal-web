@@ -50,3 +50,30 @@ a { color: var(--tool); }
 .graph-toolbar { display: flex; gap: 6px; margin-bottom: 6px; }
 .graph-toolbar button { background: transparent; border: 1px solid var(--border); color: var(--amber); font: inherit; font-size: 11px; letter-spacing: 0.05em; padding: 1px 6px; cursor: pointer; }
 .graph-toolbar button[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; }
+/* Shared header buttons (watchlist groups); same look as the GP overlay toggles. */
+.panel-toolbar { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.panel-toolbar button { background: transparent; border: 1px solid var(--border); color: var(--muted); font: inherit; font-size: 11px; letter-spacing: 0.05em; padding: 1px 6px; cursor: pointer; }
+.panel-toolbar button[aria-pressed="true"] { color: var(--amber); border-color: var(--amber); }
+/* N panel */
+.news-list { list-style: none; margin: 0; padding: 0; }
+.news-list li { padding: 4px 0; border-bottom: 1px solid var(--border); }
+.news-list a { color: var(--text); text-decoration: none; }
+.news-list a:hover { color: var(--amber); }
+.news-meta { font-size: 12px; }
+/* W panel: rows open a Q panel; a moved price flashes in the candle color once per poll. */
+.watchlist { width: 100%; border-collapse: collapse; }
+.watchlist tr { cursor: pointer; }
+.watchlist tr:hover td { background: #161616; }
+.watchlist td { padding: 3px 4px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.watchlist .symbol { color: var(--amber); }
+.watchlist .name { overflow: hidden; text-overflow: ellipsis; max-width: 12ch; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.price[data-flash="up"] { animation: flash-up 0.8s ease-out; }
+.price[data-flash="down"] { animation: flash-down 0.8s ease-out; }
+@keyframes flash-up { from { background: var(--candle-up); color: #000; } to { background: transparent; } }
+@keyframes flash-down { from { background: var(--candle-down); color: #000; } to { background: transparent; } }
+/* CF panel: a shorter chart leaves room for the distribution table inside one grid cell. */
+.chart-flow { height: clamp(140px, 24vh, 300px); }
+.cf-distribution { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.cf-distribution th { font-weight: normal; text-align: left; font-size: 11px; letter-spacing: 0.05em; }
+.cf-distribution td, .cf-distribution th { padding: 2px 4px; border-bottom: 1px solid var(--border); }

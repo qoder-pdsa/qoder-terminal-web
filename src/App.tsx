@@ -40,7 +40,7 @@ export function App() {
     <div className="terminal">
       <header className="topbar">
         <span className="brand">QODER TERMINAL</span>
-        <span className="muted">Q · GP · N · W · ASK</span>
+        <span className="muted">Q · GP · N · W · CF · ASK</span>
       </header>
       <form onSubmit={onSubmit} className="command-bar">
         <span className="prompt">&gt;</span>
@@ -49,7 +49,7 @@ export function App() {
           value={input}
           onChange={(e) => setHistory((prev) => ({ ...prev, draft: e.target.value, cursor: -1 }))}
           onKeyDown={onHistoryKey}
-          placeholder="700 Q   |   9988.HK GP   |   ASK compare Tencent and Alibaba recently"
+          placeholder="700 Q   |   9988.HK GP   |   700 CF   |   W   |   ASK compare Tencent and Alibaba recently"
           autoFocus
         />
       </form>

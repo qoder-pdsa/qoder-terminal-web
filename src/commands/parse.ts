@@ -1,6 +1,6 @@
 import { DEFAULT_HISTORY_RANGE, HISTORY_RANGES, type HistoryRange } from "../api/data";
 
-export const FUNCTION_CODES = ["Q", "GP", "N", "W", "ASK"] as const;
+export const FUNCTION_CODES = ["Q", "GP", "N", "W", "CF", "ASK"] as const;
 export type FunctionCode = (typeof FUNCTION_CODES)[number];
 
 export type Command =
@@ -10,7 +10,7 @@ export type Command =
 
 const FULL_SYMBOL = /^([0-9A-Z]{1,6})\.(HK|US|SH|SZ)$/;
 const HK_SHORT = /^\d{1,5}$/;
-const REQUIRES_SYMBOL: ReadonlySet<FunctionCode> = new Set(["Q", "GP"]);
+const REQUIRES_SYMBOL: ReadonlySet<FunctionCode> = new Set(["Q", "GP", "CF"]);
 
 function isCode(token: string): token is FunctionCode {
   return (FUNCTION_CODES as readonly string[]).includes(token);
