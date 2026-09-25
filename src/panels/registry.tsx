@@ -2,9 +2,11 @@ import type { ReactNode } from "react";
 import { DEFAULT_HISTORY_RANGE } from "../api/data";
 import type { Command } from "../commands/parse";
 import { AskPanel } from "./AskPanel";
+import { CapitalFlowPanel } from "./CapitalFlowPanel";
 import { GraphPanel } from "./GraphPanel";
-import { PlaceholderPanel } from "./PlaceholderPanel";
+import { NewsPanel } from "./NewsPanel";
 import { QuotePanel } from "./QuotePanel";
+import { WatchlistPanel } from "./WatchlistPanel";
 
 export interface PanelContext {
   run: (input: string) => void;
@@ -28,8 +30,10 @@ export function renderPanel(cmd: RunnableCommand, ctx: PanelContext): ReactNode 
     case "GP":
       return <GraphPanel symbol={cmd.symbol ?? ""} range={cmd.range} />;
     case "N":
-      return <PlaceholderPanel title="NEWS" />;
+      return <NewsPanel symbol={cmd.symbol} />;
     case "W":
-      return <PlaceholderPanel title="WATCHLIST" />;
+      return <WatchlistPanel onOpen={ctx.run} />;
+    case "CF":
+      return <CapitalFlowPanel symbol={cmd.symbol ?? ""} />;
   }
 }

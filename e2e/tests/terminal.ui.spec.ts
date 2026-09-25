@@ -115,3 +115,51 @@ test("layout is a fixed 2x2 grid with empty slots", async ({ page }) => {
   expect(new Set(boxes.map((b) => b.x)).size).toBe(2);
   expect(new Set(boxes.map((b) => b.y)).size).toBe(2);
 });
+
+test("N lists a symbol's news with outbound links", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 N");
+  const first = page.getByTestId("news-item").first();
+  await expect(first).toBeVisible();
+  await expect(first.locator("a")).toHaveAttribute("href", /^https?:\/\//);
+  await expect(first.locator("a")).toHaveAttribute("target", "_blank");
+  await expect(first).toContainText(/ago|just now/);
+});
+
+test("bare N merges several symbols' news", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "N");
+  await expect(page.getByTestId("news-item").first()).toBeVisible();
+  const symbols = await page.getByTestId("news-item").locator(".news-meta").allTextContents();
+  expect(new Set(symbols.flatMap((t) => t.match(/\d+\.HK/g) ?? [])).size).toBeGreaterThan(1);
+});
+
+test("W lists the watchlist with live prices and opens a quote on click", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "W");
+  const rows = page.getByTestId("watchlist-row");
+  await expect(rows.first()).toBeVisible();
+  await expect(page.getByTestId("watchlist-price").first()).toHaveText(/^\d+\.\d{4}$/);
+  await expect(page.getByTestId("watchlist-change").first()).toHaveText(/^[▲▼]|^0\.0000/);
+  const symbol = (await rows.first().locator(".symbol").textContent()) ?? "";
+  await rows.first().click();
+  await expect(page.getByTestId("quote-panel")).toBeVisible();
+  await expect(page.locator("h2", { hasText: `${symbol} Q` })).toBeVisible();
+});
+
+test("CF draws the capital flow bars and the order-size distribution", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 CF");
+  await expect(page.getByTestId("cf-chart").locator("canvas").first()).toBeVisible();
+  const table = page.getByTestId("cf-distribution");
+  for (const bucket of ["large", "medium", "small"]) {
+    await expect(table.getByTestId(`cf-${bucket}`)).toContainText(bucket.toUpperCase());
+  }
+  await expect(table.getByTestId("cf-large").locator("td").nth(3)).toHaveAttribute("data-direction", /up|down|flat/);
+});
+
+test("CF requires a symbol", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "CF");
+  await expect(page.getByTestId("command-error")).toContainText("CF requires a symbol");
+});

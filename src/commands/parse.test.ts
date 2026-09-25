@@ -24,12 +24,15 @@ describe("parseCommand", () => {
     ["  9988.hk gp ", { kind: "function", code: "GP", symbol: "9988.HK", range: "3M" }],
     ["N", { kind: "function", code: "N" }],
     ["3690 N", { kind: "function", code: "N", symbol: "3690.HK" }],
+    ["W", { kind: "function", code: "W" }],
+    ["700 CF", { kind: "function", code: "CF", symbol: "700.HK" }],
+    ["9988.hk cf", { kind: "function", code: "CF", symbol: "9988.HK" }],
     ["ASK compare Tencent and Alibaba", { kind: "ask", question: "compare Tencent and Alibaba" }],
   ])("parses %j", (input, expected) => {
     expect(parseCommand(input)).toEqual(expected);
   });
 
-  it.each(["", "ASK", "GP", "700 XYZ", "700 Q EXTRA", "TENCENT Q"])("rejects %j", (input) => {
+  it.each(["", "ASK", "GP", "CF", "700 CF 3M", "700 XYZ", "700 Q EXTRA", "TENCENT Q"])("rejects %j", (input) => {
     expect(parseCommand(input).kind).toBe("invalid");
   });
 });

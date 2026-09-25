@@ -40,6 +40,52 @@ export interface IndicatorSeries {
 
 export type IndicatorKind = "sma" | "ema" | "rsi";
 
+/** Mirrors NewsItem. */
+export interface NewsItem {
+  id: string;
+  headline: string;
+  summary?: string;
+  source: string;
+  url: string;
+  symbols?: string[];
+  publishedAt: string;
+}
+
+/** Mirrors Watchlist. */
+export interface WatchedSymbol {
+  symbol: string;
+  name: string;
+}
+
+export interface Watchlist {
+  id: string;
+  name: string;
+  symbols: WatchedSymbol[];
+}
+
+/** Mirrors CapitalFlow; every amount is a decimal string. */
+export interface CapitalFlowPoint {
+  time: string;
+  inflow: string;
+}
+
+export interface CapitalBuckets {
+  large: string;
+  medium: string;
+  small: string;
+}
+
+export interface CapitalFlow {
+  symbol: string;
+  currency: string;
+  asOf: string;
+  flow: CapitalFlowPoint[];
+  distribution: { in: CapitalBuckets; out: CapitalBuckets; net: CapitalBuckets };
+}
+
+/** The contract's `symbols` query takes at most this many symbols per call. */
+export const MAX_BATCH_SYMBOLS = 20;
+
 /** Map the contract's Error body onto a thrown Error, falling back to the HTTP status. */
 async function apiError(resp: Response): Promise<Error> {
   const body = (await resp.json().catch(() => null)) as { message?: string } | null;
@@ -74,4 +120,31 @@ export async function fetchIndicator(
   const resp = await fetch(`${DATA_URL}/v1/indicators/${encodeURIComponent(symbol)}?${query}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as IndicatorSeries;
+}
+
+export async function fetchNews(symbol: string, limit: number, signal?: AbortSignal): Promise<NewsItem[]> {
+  const query = new URLSearchParams({ symbol, limit: String(limit) });
+  const resp = await fetch(`${DATA_URL}/v1/news?${query}`, { signal });
+  if (!resp.ok) throw await apiError(resp);
+  return (await resp.json()) as NewsItem[];
+}
+
+/** One request for a whole watchlist group; the data service makes a single upstream call. */
+export async function fetchQuotes(symbols: readonly string[], signal?: AbortSignal): Promise<Quote[]> {
+  const query = new URLSearchParams({ symbols: symbols.slice(0, MAX_BATCH_SYMBOLS).join(",") });
+  const resp = await fetch(`${DATA_URL}/v1/quotes?${query}`, { signal });
+  if (!resp.ok) throw await apiError(resp);
+  return (await resp.json()) as Quote[];
+}
+
+export async function fetchWatchlists(signal?: AbortSignal): Promise<Watchlist[]> {
+  const resp = await fetch(`${DATA_URL}/v1/watchlists`, { signal });
+  if (!resp.ok) throw await apiError(resp);
+  return (await resp.json()) as Watchlist[];
+}
+
+export async function fetchCapitalFlow(symbol: string, signal?: AbortSignal): Promise<CapitalFlow> {
+  const resp = await fetch(`${DATA_URL}/v1/capital-flow/${encodeURIComponent(symbol)}`, { signal });
+  if (!resp.ok) throw await apiError(resp);
+  return (await resp.json()) as CapitalFlow;
 }
