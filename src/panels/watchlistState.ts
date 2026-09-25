@@ -42,3 +42,50 @@ export function flashDirections(
 export function selectGroup(lists: readonly Watchlist[], selectedId: string | null): Watchlist | null {
   return lists.find((l) => l.id === selectedId) ?? lists[0] ?? null;
 }
+
+/** The sortable columns; CHANGE sorts on the percentage, not the absolute change. */
+export type SortKey = "price" | "changePercent";
+export type SortDirection = "descending" | "ascending";
+export type AriaSort = SortDirection | "none";
+
+export interface WatchlistSort {
+  key: SortKey;
+  direction: SortDirection;
+}
+
+/** One row of the W table: the watched symbol plus its quote, `null` while the quote is still `…`. */
+export interface WatchlistRow {
+  symbol: string;
+  name: string;
+  quote: Quote | null;
+}
+
+/**
+ * Orders the rows for the current sort without touching the input. A row whose quote has not
+ * arrived has no number to compare and stays last in both directions; `sort` is stable, so equal
+ * values keep the watchlist's own order.
+ */
+export function sortRows(rows: readonly WatchlistRow[], sort: WatchlistSort | null): WatchlistRow[] {
+  if (!sort) return [...rows];
+  return [...rows].sort((a, b) => {
+    const left = a.quote?.[sort.key];
+    const right = b.quote?.[sort.key];
+    if (left === undefined && right === undefined) return 0;
+    if (left === undefined) return 1;
+    if (right === undefined) return -1;
+    const cmp = compareDecimal(left, right);
+    return sort.direction === "descending" ? -cmp : cmp;
+  });
+}
+
+/** A header click: the first click sorts descending, the next one flips, another key restarts. */
+export function nextSort(current: WatchlistSort | null, key: SortKey): WatchlistSort {
+  const direction: SortDirection =
+    current?.key === key && current.direction === "descending" ? "ascending" : "descending";
+  return { key, direction };
+}
+
+/** `aria-sort` of one header: only the sorted key reports a direction. */
+export function ariaSort(sort: WatchlistSort | null, key: SortKey): AriaSort {
+  return sort?.key === key ? sort.direction : "none";
+}
