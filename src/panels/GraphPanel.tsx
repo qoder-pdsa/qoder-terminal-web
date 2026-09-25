@@ -2,6 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { CandlestickSeries, ColorType, LineSeries, createChart, type IChartApi } from "lightweight-charts";
 import { DEFAULT_HISTORY_RANGE, fetchHistory, fetchIndicator, type HistoryRange } from "../api/data";
 import { toChartData, type ChartData } from "./chartData";
+import {
+  INITIAL_OVERLAY_STATE,
+  OVERLAY_KEYS,
+  toggleOverlay,
+  visibleOverlays,
+  type OverlayKey,
+  type OverlayState,
+} from "./overlayState";
 
 const SMA_WINDOWS = [20, 50] as const;
 
@@ -19,7 +27,10 @@ export function GraphPanel({
   range?: HistoryRange;
 }) {
   const [state, setState] = useState<State>({ status: "loading" });
+  const [overlayState, setOverlayState] = useState<OverlayState>(INITIAL_OVERLAY_STATE);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const toggle = (key: OverlayKey) => setOverlayState((prev) => toggleOverlay(prev, key));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -43,12 +54,27 @@ export function GraphPanel({
   useEffect(() => {
     const container = containerRef.current;
     if (state.status !== "ok" || !container) return;
-    const chart = mountChart(container, state.data);
+    // Redrawing from already-fetched data: toggling an overlay never refetches the series.
+    const data: ChartData = { ...state.data, overlays: visibleOverlays(state.data.overlays, overlayState) };
+    const chart = mountChart(container, data);
     return () => chart.remove();
-  }, [state]);
+  }, [state, overlayState]);
 
   return (
     <div className="graph-panel" data-testid="graph-panel">
+      <div className="graph-toolbar" data-testid="graph-toolbar">
+        {OVERLAY_KEYS.map((key) => (
+          <button
+            key={key}
+            type="button"
+            data-testid={`toggle-${key}`}
+            aria-pressed={overlayState[key]}
+            onClick={() => toggle(key)}
+          >
+            {key.toUpperCase()}
+          </button>
+        ))}
+      </div>
       {state.status === "loading" && (
         <p className="muted">
           LOADING {symbol} {range}…
