@@ -18,5 +18,7 @@ The Q panel shows last price, change and an intraday line, but a trader also exp
 - [ ] Unit tests for the mock invariants (data) and for a pure `formatOhlc` helper (web); e2e contract case checks the five new fields are present and decimal-shaped; UI e2e: after `700 Q`, `quote-ohlc` matches `/^O \d+\.\d{4}\s+H \d+\.\d{4}\s+L \d+\.\d{4}$/`
 - [ ] `make lint test` passes in both repos
 
+**Delivered 2026-09-26** (data `b7d90f8`, web `6346613`; merged as `main` web merge commit). QA deployed the web branch while it was 7 commits behind `main`, which briefly removed TD-02 / DEMO-8 from production until the human release — the deploy skill now hard-gates on `merge-base --is-ancestor`.
+
 ## Out of scope
 52-week high/low, bid/ask, W panel columns, analyst summary changes.
