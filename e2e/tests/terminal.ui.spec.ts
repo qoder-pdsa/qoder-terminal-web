@@ -120,6 +120,31 @@ test("GP draws a volume pane under the candles and keeps it across ranges", asyn
   await expect(chart.locator("canvas").first()).toBeVisible();
 });
 
+test("GP shows a crosshair readout that follows the hovered candle", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 GP");
+  const panel = page.getByTestId("graph-panel");
+  const chart = panel.getByTestId("graph-chart");
+  const readout = panel.getByTestId("candle-readout");
+
+  // Prices are the contract's fixed-scale decimal strings passed through, so the digits are asserted
+  // as text; the volume is the only compacted field.
+  await expect(readout).toHaveText(
+    /^\d{4}-\d{2}-\d{2}\s+O \d+\.\d{4}\s+H \d+\.\d{4}\s+L \d+\.\d{4}\s+C \d+\.\d{4}\s+V \S+$/,
+  );
+  await expect(readout).toHaveAttribute("data-direction", /^(up|down|flat)$/);
+
+  // Nothing has hovered yet, so the line already carries the last candle and is never empty.
+  const lastDay = (await readout.textContent())?.slice(0, 10);
+  expect(lastDay).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+  await chart.hover({ position: { x: 4, y: 40 } });
+  await expect
+    .poll(async () => (await readout.textContent())?.slice(0, 10))
+    .not.toBe(lastDay);
+  await expect(readout).toHaveAttribute("data-direction", /^(up|down|flat)$/);
+});
+
 test("GP range state is per panel and starts on the opened range", async ({ page }) => {
   await page.goto("./");
   await run(page, "700 GP 6M");

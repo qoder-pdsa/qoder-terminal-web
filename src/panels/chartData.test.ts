@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { Time } from "lightweight-charts";
 import type { Candle, IndicatorSeries } from "../api/data";
-import { toChartData, volumeBarColor, type VolumeColors } from "./chartData";
+import { crosshairDay, formatCandleReadout, toChartData, volumeBarColor, type VolumeColors } from "./chartData";
 
 const COLORS: VolumeColors = { up: "#ff4d4d", down: "#3ad17a" };
 
@@ -118,5 +119,72 @@ describe("toChartData volume", () => {
 
   it("has no bars when there are no candles", () => {
     expect(toChartData([], [sma(20, [null])], COLORS).volume).toEqual([]);
+  });
+});
+
+describe("formatCandleReadout", () => {
+  it("renders the hovered candle as one crosshair line", () => {
+    expect(
+      formatCandleReadout(candle("2026-09-22T00:00:00Z", "431.6000", "437.2000", "430.8000", "436.6000", 9_110_000)),
+    ).toEqual({
+      date: "2026-09-22",
+      open: "431.6000",
+      high: "437.2000",
+      low: "430.8000",
+      close: "436.6000",
+      volume: "9.11M",
+      direction: "up",
+    });
+  });
+
+  it.each([
+    ["close is above the open", "431.6000", "436.6000", "up"],
+    ["close is below the open", "436.6000", "431.6000", "down"],
+    ["candle is a doji", "431.6000", "431.6000", "flat"],
+    ["fraction digits differ but it is still up", "431.6", "431.60001", "up"],
+    ["fraction digits differ but it is still down", "431.60001", "431.6", "down"],
+  ])("reports `flat` only when the %s", (_label, open, close, expected) => {
+    const readout = formatCandleReadout(candle("2026-09-22T00:00:00Z", open, "437.2000", "430.8000", close));
+    expect(readout.direction).toBe(expected);
+  });
+
+  it("passes the contract's decimal strings through, keeping every trailing zero", () => {
+    const readout = formatCandleReadout(candle("2026-09-22T00:00:00Z", "0.0500", "1.0000", "0.0010", "0.0700"));
+    expect([readout.open, readout.high, readout.low, readout.close]).toEqual([
+      "0.0500",
+      "1.0000",
+      "0.0010",
+      "0.0700",
+    ]);
+  });
+
+  it("takes the date from the contract's UTC-midnight timestamp", () => {
+    expect(formatCandleReadout(candle("2026-01-05T00:00:00Z", "1", "2", "0.5", "1.5")).date).toBe("2026-01-05");
+  });
+
+  it.each([
+    [0, "0"],
+    [999, "999"],
+    [9_110_000, "9.11M"],
+    [1_500_000_000, "1.5B"],
+  ])("compacts volume %i to `%s` with formatAmount", (volume, expected) => {
+    expect(formatCandleReadout(candle("2026-09-22T00:00:00Z", "1", "2", "0.5", "1.5", volume)).volume).toBe(expected);
+  });
+});
+
+describe("crosshairDay", () => {
+  it("reads the business-day object the chart library hands back, zero-padded", () => {
+    expect(crosshairDay({ year: 2026, month: 9, day: 22 })).toBe("2026-09-22");
+    expect(crosshairDay({ year: 2026, month: 12, day: 5 })).toBe("2026-12-05");
+  });
+
+  it("accepts a business-day string as well", () => {
+    expect(crosshairDay("2026-09-22")).toBe("2026-09-22");
+  });
+
+  it("is undefined when the crosshair left the data, so the caller falls back to the last candle", () => {
+    expect(crosshairDay(undefined)).toBeUndefined();
+    // GP plots business days only; a timestamp scale has no contract candle to look up.
+    expect(crosshairDay(1_790_000_000 as unknown as Time)).toBeUndefined();
   });
 });
