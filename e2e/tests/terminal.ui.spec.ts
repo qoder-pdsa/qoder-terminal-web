@@ -147,9 +147,10 @@ test("Tab completes a symbol from the session and then a function code", async (
   await input.fill("70");
   await expect(input).toHaveAttribute("data-completions", "700.HK");
   await input.press("Tab");
-  await expect(input).toHaveValue("700.HK");
+  // The completed symbol brings its own separating space, so the code is typed straight after it.
+  await expect(input).toHaveValue("700.HK ");
 
-  await input.pressSequentially(" G");
+  await input.pressSequentially("G");
   await expect(input).toHaveAttribute("data-completions", "700.HK GP");
   await input.press("Tab");
   await expect(input).toHaveValue("700.HK GP");
