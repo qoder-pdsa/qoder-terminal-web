@@ -17,8 +17,16 @@ succeeded), but the e2e that opens `N` right after other panels can hit a run wh
 feed. Suspects: Longbridge news rate limit under the burst, or a transient upstream error that the data service turns
 into 502 without retry.
 
+## Round 1 result and amendment (human acceptance, 2026-09-25 19:42 HKT)
+Delivered: 30 s coalescing news cache + one 100 ms retry on 429 (data `0f8248e`), bounded fan-out of 2 (web `0067783`). The
+bare-`N` panel is stable (5/5 + 3/3 runs), but a cold 6-parallel API burst right after ~40 news calls still returned
+`502 200 502 200 200 200` (`429003` twice in the data log): one retry is not enough once the window is saturated.
+**Rejected at acceptance; rework on the data side**: pace upstream news calls ≥ 20 ms apart, retry up to 3× with
+100/300/900 ms + jitter, injected timing in tests. Criterion 1 is amended below.
+
 ## Acceptance criteria
-- [ ] Reproduce with the production data logs (`deploy.sh logs data`, look for `provider failure … news`) and name the upstream error code
+- [x] Reproduce with the production data logs (`deploy.sh logs data`, look for `provider failure … news`) and name the upstream error code — `429003`
+- [ ] (amended) On production, after a warm-up of 30 news calls in 60 s, a cold 6-parallel `/v1/news` burst returns 6/6 200, twice
 - [ ] data: news fetches for a burst of symbols share a short-TTL cache like history/intraday (`provider.Cached`), and a rate-limit answer is retried once with backoff before becoming a 502
 - [ ] web: `N` requests the feeds with bounded concurrency (e.g. 2 at a time) instead of all at once
 - [ ] e2e "bare N merges several symbols' news" passes 5 consecutive runs against production
