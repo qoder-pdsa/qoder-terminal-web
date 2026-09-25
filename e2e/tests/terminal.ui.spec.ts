@@ -77,6 +77,20 @@ test("GP range buttons refetch the range and keep the chart drawn", async ({ pag
   await expect(panel.locator("canvas").first()).toBeVisible();
 });
 
+test("GP draws a volume pane under the candles and keeps it across ranges", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 GP");
+  const panel = page.getByTestId("graph-panel");
+  const chart = panel.getByTestId("graph-chart");
+  await expect(chart).toHaveAttribute("data-panes", "2");
+  await expect(chart.locator("canvas").first()).toBeVisible();
+
+  await panel.getByTestId("range-1M").click();
+  await expect(panel.getByTestId("range-1M")).toHaveAttribute("aria-pressed", "true");
+  await expect(chart).toHaveAttribute("data-panes", "2");
+  await expect(chart.locator("canvas").first()).toBeVisible();
+});
+
 test("GP range state is per panel and starts on the opened range", async ({ page }) => {
   await page.goto("./");
   await run(page, "700 GP 6M");

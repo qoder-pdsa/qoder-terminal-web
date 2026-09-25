@@ -1,4 +1,5 @@
 import type { Candle, IndicatorSeries } from "../api/data";
+import { compareDecimal } from "./watchlistState";
 
 /** A candle the chart library can plot: numbers, and a `YYYY-MM-DD` business day. */
 export interface ChartCandle {
@@ -14,9 +15,23 @@ export interface ChartOverlay {
   points: { time: string; value: number }[];
 }
 
+/** One volume histogram bar; `value` is the contract integer, never rescaled. */
+export interface VolumeBar {
+  time: string;
+  value: number;
+  color: string;
+}
+
+/** The stylesheet's up/down candle colors, which the canvas cannot read as `var()`. */
+export interface VolumeColors {
+  up: string;
+  down: string;
+}
+
 export interface ChartData {
   candles: ChartCandle[];
   overlays: ChartOverlay[];
+  volume: VolumeBar[];
 }
 
 /** The one place a contract decimal string becomes a number (AGENTS.md forbids `parseFloat` on prices). */
@@ -29,12 +44,21 @@ function chartDate(iso: string): string {
   return iso.slice(0, 10);
 }
 
+/** A volume bar takes the candle's own direction color; a doji counts as up, as the candles do. */
+export function volumeBarColor(open: string, close: string, colors: VolumeColors): string {
+  return compareDecimal(close, open) >= 0 ? colors.up : colors.down;
+}
+
 /**
  * Convert contract payloads into chart-ready series: decimal strings to numbers, ISO timestamps
  * to business days, and the `null` points the contract emits before an indicator window is
  * filled are dropped so the overlay starts where it first has a value.
  */
-export function toChartData(candles: readonly Candle[], overlays: readonly IndicatorSeries[]): ChartData {
+export function toChartData(
+  candles: readonly Candle[],
+  overlays: readonly IndicatorSeries[],
+  colors: VolumeColors,
+): ChartData {
   return {
     candles: candles.map((candle) => ({
       time: chartDate(candle.time),
@@ -48,6 +72,11 @@ export function toChartData(candles: readonly Candle[], overlays: readonly Indic
       points: series.points.flatMap((point) =>
         point.value === null ? [] : [{ time: chartDate(point.time), value: decimal(point.value) }],
       ),
+    })),
+    volume: candles.map((candle) => ({
+      time: chartDate(candle.time),
+      value: candle.volume,
+      color: volumeBarColor(candle.open, candle.close, colors),
     })),
   };
 }

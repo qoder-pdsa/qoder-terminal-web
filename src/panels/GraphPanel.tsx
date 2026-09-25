@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CandlestickSeries, LineSeries, type IChartApi } from "lightweight-charts";
+import { CandlestickSeries, HistogramSeries, LineSeries, type IChartApi } from "lightweight-charts";
 import { fetchHistory, fetchIndicator, HISTORY_RANGES, type HistoryRange } from "../api/data";
 import { toChartData, type ChartData } from "./chartData";
 import { createTerminalChart, readChartTheme } from "./chartTheme";
@@ -13,6 +13,9 @@ import {
 } from "./overlayState";
 
 const SMA_WINDOWS = [20, 50] as const;
+
+/** Candle area plus the volume area below it; the UI e2e reads this back as `data-panes`. */
+const CHART_PANES = 2;
 
 type State =
   | { status: "loading" }
@@ -43,7 +46,11 @@ export function GraphPanel({
       Promise.all(SMA_WINDOWS.map((window) => fetchIndicator(symbol, "sma", window, range, controller.signal))),
     ])
       .then(([history, indicators]) => {
-        const data = toChartData(history, indicators);
+        const theme = readChartTheme();
+        const data = toChartData(history, indicators, {
+          up: theme.color("--candle-up"),
+          down: theme.color("--candle-down"),
+        });
         setState(data.candles.length === 0 ? { status: "empty" } : { status: "ok", data });
       })
       .catch((err: unknown) => {
@@ -106,7 +113,9 @@ export function GraphPanel({
           NO CANDLES FOR {symbol} {range}
         </p>
       )}
-      {state.status === "ok" && <div className="chart" ref={containerRef} data-testid="graph-chart" />}
+      {state.status === "ok" && (
+        <div className="chart" ref={containerRef} data-testid="graph-chart" data-panes={CHART_PANES} />
+      )}
     </div>
   );
 }
@@ -128,6 +137,14 @@ function mountChart(container: HTMLElement, data: ChartData): IChartApi {
   });
   candles.setData(data.candles);
 
+  const volume = chart.addSeries(HistogramSeries, {
+    priceScaleId: "volume",
+    priceLineVisible: false,
+    lastValueVisible: false,
+    priceFormat: { type: "volume" },
+  });
+  volume.setData(data.volume);
+
   const overlayColors = [color("--amber"), color("--tool")];
   data.overlays.forEach((overlay, index) => {
     const line = chart.addSeries(LineSeries, {
@@ -140,6 +157,10 @@ function mountChart(container: HTMLElement, data: ChartData): IChartApi {
     });
     line.setData(overlay.points);
   });
+
+  // The volume histogram keeps the bottom quarter; candles and overlays are squeezed above it.
+  chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
+  chart.priceScale("right").applyOptions({ scaleMargins: { top: 0.05, bottom: 0.3 } });
 
   chart.timeScale().fitContent();
   return chart;
