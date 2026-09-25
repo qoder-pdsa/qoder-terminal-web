@@ -131,7 +131,7 @@ test("bare N merges several symbols' news", async ({ page }) => {
   await run(page, "N");
   await expect(page.getByTestId("news-item").first()).toBeVisible();
   const symbols = await page.getByTestId("news-item").locator(".news-meta").allTextContents();
-  expect(new Set(symbols.flatMap((t) => t.match(/\d+\.HK/g) ?? [])).size).toBeGreaterThan(1);
+  expect(new Set(symbols.flatMap((t) => t.match(/[0-9A-Z]+\.(HK|US|SH|SZ)/g) ?? [])).size).toBeGreaterThan(1);
 });
 
 test("W lists the watchlist with live prices and opens a quote on click", async ({ page }) => {
@@ -150,7 +150,8 @@ test("W lists the watchlist with live prices and opens a quote on click", async 
 test("CF draws the capital flow bars and the order-size distribution", async ({ page }) => {
   await page.goto("./");
   await run(page, "700 CF");
-  await expect(page.getByTestId("cf-chart").locator("canvas").first()).toBeVisible();
+  // Live data has no bars before the first trade of the session; mock always has them.
+  await expect(page.getByTestId("cf-chart").locator("canvas").first().or(page.getByTestId("cf-empty"))).toBeVisible();
   const table = page.getByTestId("cf-distribution");
   for (const bucket of ["large", "medium", "small"]) {
     await expect(table.getByTestId(`cf-${bucket}`)).toContainText(bucket.toUpperCase());

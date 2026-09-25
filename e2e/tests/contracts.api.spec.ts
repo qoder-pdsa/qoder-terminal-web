@@ -44,6 +44,9 @@ test("data: batch quotes match single quotes in the requested order", async ({ r
   expect(batch[1].currency).toBe(single.currency);
   expect(batch[1].price).toMatch(DECIMAL);
   expect((await request.get(`${urls.data}/v1/quotes?symbols=tencent`)).status()).toBe(400);
+  // symbols without a securities quote (options) are omitted, never a whole-batch failure
+  const partial = await (await request.get(`${urls.data}/v1/quotes?symbols=700.HK,MSFT261016P420000.US`)).json();
+  expect(partial.map((q: { symbol: string }) => q.symbol)).toEqual(["700.HK"]);
 });
 
 test("data: watchlists carry named symbols", async ({ request }) => {
@@ -52,7 +55,7 @@ test("data: watchlists carry named symbols", async ({ request }) => {
   for (const list of lists) {
     expect(typeof list.id).toBe("string");
     expect(typeof list.name).toBe("string");
-    for (const s of list.symbols) expect(s.symbol).toMatch(/^[0-9A-Z]{1,6}\.(HK|US|SH|SZ)$/);
+    for (const s of list.symbols) expect(s.symbol).toMatch(/^[0-9A-Z]{1,20}\.(HK|US|SH|SZ)$/);
   }
 });
 
@@ -60,8 +63,8 @@ test("data: capital flow is decimal strings with a server-side net", async ({ re
   const cf = await (await request.get(`${urls.data}/v1/capital-flow/700.HK`)).json();
   expect(cf.symbol).toBe("700.HK");
   expect(cf.currency).toBe("HKD");
-  expect(cf.flow.length).toBeGreaterThan(0);
-  expect(cf.flow[0].inflow).toMatch(DECIMAL);
+  expect(Array.isArray(cf.flow)).toBeTruthy(); // empty before the first trade of the session
+  for (const point of cf.flow.slice(0, 3)) expect(point.inflow).toMatch(DECIMAL);
   for (const side of ["in", "out", "net"]) {
     for (const bucket of ["large", "medium", "small"]) expect(cf.distribution[side][bucket], `${side}.${bucket}`).toMatch(DECIMAL);
   }

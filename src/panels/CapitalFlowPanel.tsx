@@ -28,7 +28,7 @@ export function CapitalFlowPanel({ symbol }: { symbol: string }) {
 
   useEffect(() => {
     const container = containerRef.current;
-    if (state.status !== "ok" || !container) return;
+    if (state.status !== "ok" || !container || state.data.flow.length === 0) return;
     const chart = mountFlowChart(container, state.data);
     return () => chart.remove();
   }, [state]);
@@ -42,7 +42,11 @@ export function CapitalFlowPanel({ symbol }: { symbol: string }) {
       <div className="muted">
         NET INFLOW PER MINUTE · {data.currency} · AS OF {formatHkTime(data.asOf)}
       </div>
-      <div className="chart chart-flow" ref={containerRef} data-testid="cf-chart" />
+      {data.flow.length === 0 ? (
+        <p className="muted" data-testid="cf-empty">NO INTRADAY FLOW YET — the first bar appears after the first trade of the session</p>
+      ) : (
+        <div className="chart chart-flow" ref={containerRef} data-testid="cf-chart" />
+      )}
       <table className="cf-distribution" data-testid="cf-distribution">
         <thead>
           <tr className="muted">
