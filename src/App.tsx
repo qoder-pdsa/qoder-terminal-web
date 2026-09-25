@@ -1,16 +1,28 @@
-import { useCallback, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { HistoryRange } from "./api/data";
+import { complete, completionCandidates } from "./commands/complete";
 import { back, current, EMPTY_HISTORY, forward, push, type HistoryState } from "./commands/history";
 import { parseCommand } from "./commands/parse";
 import { closePanel, openPanel, toSlots, type OpenPanel } from "./layout/slots";
 import { panelTitle, renderPanel } from "./panels/registry";
 import { panelRange, selectPanelRange } from "./panels/rangeState";
 
+/** A running Tab session: repeated presses cycle the candidates of the line the user typed. */
+interface CompletionSession {
+  readonly stem: string;
+  readonly result: string;
+  readonly cycle: number;
+}
+
 export function App() {
   const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
   const [panels, setPanels] = useState<OpenPanel[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const input = current(history);
+  const completions = complete(input, completionCandidates(input, history.entries), 0).matches;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const sessionRef = useRef<CompletionSession | null>(null);
+  const caretToEnd = useRef(false);
 
   const run = useCallback((raw: string) => {
     const command = parseCommand(raw);
@@ -40,15 +52,43 @@ export function App() {
     setHistory((prev) => push(prev, input));
   };
 
-  const onHistoryKey = (e: KeyboardEvent<HTMLInputElement>) => {
+  /** Tab completes the token under the cursor; pressing it again cycles the same candidates. */
+  const completeToken = (e: KeyboardEvent<HTMLInputElement>) => {
+    // Tab must never move the focus out of the command bar, not even when nothing matches.
+    e.preventDefault();
+    const step = e.shiftKey ? -1 : 1;
+    const session = sessionRef.current;
+    // Re-completing what the last press produced continues that cycle; anything else starts one.
+    const continuing = session !== null && session.result === input ? session : null;
+    const stem = continuing ? continuing.stem : input;
+    const cycle = continuing ? continuing.cycle + step : e.shiftKey ? -1 : 0;
+    const next = complete(stem, completionCandidates(stem, history.entries), cycle);
+    if (next.matches.length === 0) return;
+    sessionRef.current = { stem, result: next.text, cycle };
+    caretToEnd.current = true;
+    setHistory((prev) => ({ ...prev, draft: next.text, cursor: -1 }));
+  };
+
+  const onCommandKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowUp") {
       e.preventDefault();
       setHistory(back);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setHistory(forward);
+    } else if (e.key === "Tab") {
+      completeToken(e);
     }
   };
+
+  // Runs on every render because a completion can produce the text the input already had; the flag
+  // keeps it a no-op otherwise.
+  useEffect(() => {
+    if (!caretToEnd.current) return;
+    caretToEnd.current = false;
+    const field = inputRef.current;
+    field?.setSelectionRange(field.value.length, field.value.length);
+  });
 
   return (
     <div className="terminal">
@@ -59,10 +99,12 @@ export function App() {
       <form onSubmit={onSubmit} className="command-bar">
         <span className="prompt">&gt;</span>
         <input
+          ref={inputRef}
           data-testid="command-input"
+          data-completions={completions.join(",")}
           value={input}
           onChange={(e) => setHistory((prev) => ({ ...prev, draft: e.target.value, cursor: -1 }))}
-          onKeyDown={onHistoryKey}
+          onKeyDown={onCommandKey}
           placeholder="700 Q   |   9988.HK GP   |   700 CF   |   W   |   ASK compare Tencent and Alibaba recently"
           autoFocus
         />
