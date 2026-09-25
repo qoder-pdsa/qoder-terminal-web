@@ -72,3 +72,13 @@ assign it to the Full-Stack Developer with `sdlcId: 10003`.
 - [x] UI e2e: after `700 GP`, `graph-chart` has `data-panes="2"` and the canvas is visible; toggling `range-1M` keeps `data-panes="2"` — accepted 2026-09-26 after one rework round
 - [ ] `make lint test` passes
 - Out of scope: volume moving averages, a toggle to hide the volume pane, intraday (Q) volume
+
+## DEMO-9 · GP panel: crosshair readout
+- **Repo**: qoder-terminal-web (frontend only)
+- Goal: while the mouse hovers over the candlestick chart, a readout line under the panel toolbar shows the hovered candle: `2026-09-22  O 431.6000  H 437.2000  L 430.8000  C 436.6000  V 9.11M`, with the `C` value colored by the candle's direction (`--candle-up` / `--candle-down`). When the mouse leaves the chart the readout shows the **last** candle instead, so the line is never empty once data is loaded. The SMA toggles, range buttons and volume pane are unchanged.
+- [ ] Pure, unit-tested `formatCandleReadout(candle)` next to `chartData.ts`: date as `YYYY-MM-DD`, prices passed through as the contract's decimal strings (no `Number()` on prices), volume via `formatAmount`; direction via `compareDecimal(close, open)`
+- [ ] Wired with lightweight-charts `chart.subscribeCrosshairMove` (the candle series' data for `param.time`; `param.time` undefined ⇒ last candle); the subscription is removed on unmount / chart re-create
+- [ ] Readout element has `data-testid="candle-readout"` and `data-direction="up|down|flat"`; it never triggers a refetch
+- [ ] UI e2e: after `700 GP`, `candle-readout` matches `/^\d{4}-\d{2}-\d{2}\s+O \d+\.\d{4}\s+H \d+\.\d{4}\s+L \d+\.\d{4}\s+C \d+\.\d{4}\s+V \S+$/`; hovering over the chart canvas at its left edge changes the date shown (compare before/after)
+- [ ] `make lint test` passes
+- Out of scope: readout for the intraday (Q) chart, SMA values in the readout, touch devices
