@@ -30,6 +30,24 @@ test("Q shows a directional change and the Hong Kong time", async ({ page }) => 
   await expect(page.getByTestId("quote-asof")).toHaveText(/^\d{2}:\d{2} HKT$/);
 });
 
+test("Q for an unknown symbol shows the error and stops polling", async ({ page }) => {
+  await page.goto("./");
+
+  // 404 is the contract's documented answer for a symbol the provider does not know; the message text is not.
+  const unknown = page.waitForResponse((resp) => resp.url().includes("/v1/quotes/705.HK"));
+  await run(page, "705 Q");
+  expect((await unknown).status()).toBe(404);
+  await expect(page.getByTestId("quote-error")).toContainText("ERROR:");
+
+  // The poll interval is 10 s, so a request inside this budget means the dead symbol is still being polled.
+  // waitForRequest is the only Playwright wait that can assert a request does *not* happen.
+  const polledAgain = await page
+    .waitForRequest((req) => req.url().includes("/v1/quotes/705.HK"), { timeout: 12_000 })
+    .then(() => true)
+    .catch(() => false);
+  expect(polledAgain).toBe(false);
+});
+
 test("ASK streams an answer and opens chart panels", async ({ page }) => {
   await page.goto("./");
   await run(page, "ASK compare Tencent and Alibaba");
