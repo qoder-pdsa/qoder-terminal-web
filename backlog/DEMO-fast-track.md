@@ -62,3 +62,13 @@ assign it to the Full-Stack Developer with `sdlcId: 10003`.
 - [x] UI e2e: run `700 Q`, type `70`, press `Tab` → input is `700.HK ` (trailing space); type `G`, press `Tab` → `700.HK GP`; ↑ still recalls `700 Q` — accepted 2026-09-25 after one rework round
 - [ ] `make lint test` passes
 - Out of scope: a visual dropdown, completing ranges, fuzzy matching, company names
+
+## DEMO-8 · GP panel: volume bars
+- **Repo**: qoder-terminal-web (frontend only; `/v1/history` candles already carry `volume`)
+- Goal: the candlestick chart gets a volume histogram in its own pane at the bottom (about a quarter of the chart height), one bar per candle, colored with the candle's up/down color (`--candle-up` when close ≥ open, `--candle-down` otherwise), so a trader can see whether a move came with volume. The SMA toggles and range buttons keep working; the histogram follows the same range.
+- [ ] Pure, unit-tested mapping in `chartData.ts` (`ChartData` gains `volume: { time, value, color }[]`); the color decision is a pure function; `volume` stays an integer (no decimal conversion involved)
+- [ ] Rendered with lightweight-charts `HistogramSeries` on a separate price scale (`priceScaleId: "volume"`, `scaleMargins` so it sits under the candles); no extra fetch
+- [ ] `data-testid="graph-chart"` unchanged; the pane count is exposed as `data-panes="2"` on the chart container for tests
+- [ ] UI e2e: after `700 GP`, `graph-chart` has `data-panes="2"` and the canvas is visible; toggling `range-1M` keeps `data-panes="2"`
+- [ ] `make lint test` passes
+- Out of scope: volume moving averages, a toggle to hide the volume pane, intraday (Q) volume
