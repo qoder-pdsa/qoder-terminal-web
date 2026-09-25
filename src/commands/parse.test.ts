@@ -9,11 +9,12 @@ describe("normalizeSymbol", () => {
     ["9988.HK", "9988.HK"],
     ["AAPL.US", "AAPL.US"],
     ["600519.SH", "600519.SH"],
+    ["MSFT261016P420000.US", "MSFT261016P420000.US"],
   ])("%s → %s", (input, expected) => {
     expect(normalizeSymbol(input)).toBe(expected);
   });
 
-  it.each(["TENCENT", "700.XX", "1234567"])("rejects %s", (input) => {
+  it.each(["TENCENT", "700.XX", "1234567", "AAAAAAAAAAAAAAAAAAAAA.US"])("rejects %s", (input) => {
     expect(normalizeSymbol(input)).toBeNull();
   });
 });
