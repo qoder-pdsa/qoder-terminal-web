@@ -86,3 +86,29 @@ describe("parseCommand GP range (BL-02)", () => {
     });
   });
 });
+
+// DEMO-5 adds CLEAR: a function code like N / W that closes every panel, so it never carries a symbol.
+describe("parseCommand CLEAR (DEMO-5)", () => {
+  it.each([
+    ["CLEAR", { kind: "function", code: "CLEAR" }],
+    ["clear", { kind: "function", code: "CLEAR" }],
+    ["  clear  ", { kind: "function", code: "CLEAR" }],
+  ])("parses %j as a symbol-less function code", (input, expected) => {
+    expect(parseCommand(input)).toEqual(expected);
+  });
+
+  it.each(["700 CLEAR", "700 clear", "0700.HK CLEAR", "AAPL.US CLEAR"])(
+    "rejects %j because CLEAR acts on the whole grid",
+    (input) => {
+      expect(parseCommand(input).kind).toBe("invalid");
+    },
+  );
+
+  it("names the code in the rejection reason", () => {
+    expect(parseCommand("700 CLEAR")).toEqual({
+      kind: "invalid",
+      input: "700 CLEAR",
+      reason: "CLEAR takes no symbol, e.g. CLEAR",
+    });
+  });
+});

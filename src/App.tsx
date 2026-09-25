@@ -2,7 +2,7 @@ import { useCallback, useState, type FormEvent, type KeyboardEvent } from "react
 import type { HistoryRange } from "./api/data";
 import { back, current, EMPTY_HISTORY, forward, push, type HistoryState } from "./commands/history";
 import { parseCommand } from "./commands/parse";
-import { openPanel, toSlots, type OpenPanel } from "./layout/slots";
+import { closePanel, openPanel, toSlots, type OpenPanel } from "./layout/slots";
 import { panelTitle, renderPanel } from "./panels/registry";
 import { panelRange, selectPanelRange } from "./panels/rangeState";
 
@@ -19,11 +19,19 @@ export function App() {
       return;
     }
     setMessage(null);
+    if (command.kind === "function" && command.code === "CLEAR") {
+      setPanels([]);
+      return;
+    }
     setPanels((prev) => openPanel(prev, { id: Date.now() + Math.random(), command }));
   }, []);
 
   const onSelectRange = useCallback((id: number, range: HistoryRange) => {
     setPanels((prev) => prev.map((panel) => (panel.id === id ? selectPanelRange(panel, range) : panel)));
+  }, []);
+
+  const close = useCallback((id: number) => {
+    setPanels((prev) => closePanel(prev, id));
   }, []);
 
   const onSubmit = (e: FormEvent) => {
@@ -46,7 +54,7 @@ export function App() {
     <div className="terminal">
       <header className="topbar">
         <span className="brand">QODER TERMINAL</span>
-        <span className="muted">Q · GP · N · W · CF · ASK</span>
+        <span className="muted">Q · GP · N · W · CF · CLEAR · ASK</span>
       </header>
       <form onSubmit={onSubmit} className="command-bar">
         <span className="prompt">&gt;</span>
@@ -61,19 +69,34 @@ export function App() {
       </form>
       {message && <div className="down message" data-testid="command-error">{message}</div>}
       <main className="grid">
-        {toSlots(panels).map((p, i) =>
-          p ? (
+        {toSlots(panels).map((p, i) => {
+          if (!p) {
+            return (
+              <section key={`empty-${i}`} className="panel empty" data-testid="empty-slot">
+                <h2>PANEL {i + 1}</h2>
+                <p className="muted">EMPTY — type a command above to open a panel, e.g. 700 Q</p>
+              </section>
+            );
+          }
+          const title = panelTitle(p.command, panelRange(p));
+          return (
             <section key={p.id} className="panel">
-              <h2>{panelTitle(p.command, panelRange(p))}</h2>
+              <div className="panel-head">
+                <h2>{title}</h2>
+                <button
+                  type="button"
+                  className="close-panel"
+                  data-testid="close-panel"
+                  aria-label={`Close ${title}`}
+                  onClick={() => close(p.id)}
+                >
+                  ×
+                </button>
+              </div>
               {renderPanel(p.command, { run, panel: p, selectRange: (range) => onSelectRange(p.id, range) })}
             </section>
-          ) : (
-            <section key={`empty-${i}`} className="panel empty" data-testid="empty-slot">
-              <h2>PANEL {i + 1}</h2>
-              <p className="muted">EMPTY — type a command above to open a panel, e.g. 700 Q</p>
-            </section>
-          ),
-        )}
+          );
+        })}
       </main>
     </div>
   );

@@ -32,6 +32,10 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 }
 .panel { background: var(--panel); padding: 12px; overflow: auto; }
 .panel h2 { margin: 0 0 8px; font-size: 13px; color: var(--amber); letter-spacing: 0.1em; }
+/* Panel header: the title on the left, the × that closes just this panel on the right. */
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.close-panel { background: transparent; border: 1px solid var(--border); color: var(--muted); font: inherit; font-size: 12px; line-height: 1; padding: 0 4px; cursor: pointer; }
+.close-panel:hover { color: var(--amber); border-color: var(--amber); }
 .big { font-size: 28px; color: var(--amber); }
 .muted { color: var(--muted); }
 .up { color: var(--up); }
