@@ -42,9 +42,9 @@ docker compose up --build                     # includes PostgreSQL and user (ru
 | `700 CF` | Intraday capital flow: net inflow per minute + large / medium / small order distribution | ✅ |
 | `CLEAR` | Empties the grid; every open panel header also has a `×` that closes just that panel | ✅ |
 
-`Tab` completes the token under the cursor — a symbol used earlier in the session (`70` → `700.HK`) or a
-function code (`700 G` → `700 GP`). Repeated `Tab` cycles the candidates, `Shift+Tab` cycles back, and
-`↑` / `↓` still recall this session's commands.
+`Tab` completes the token under the cursor — a symbol used earlier in the session (`70` → `700.HK `, with
+the space that precedes the function code already typed) or a function code (`700 G` → `700 GP`). Repeated
+`Tab` cycles the candidates, `Shift+Tab` cycles back, and `↑` / `↓` still recall this session's commands.
 
 Environment variables: `VITE_DATA_URL` (default `http://localhost:8081`) and `VITE_ANALYST_URL` (default `http://localhost:8082`).
 

@@ -2,7 +2,10 @@ import { FUNCTION_CODES, normalizeSymbol, REQUIRES_SYMBOL } from "./parse";
 
 /** What one Tab press produced: the line to show, and every line it could have been. */
 export interface Completion {
-  /** The completed command line, or the input unchanged when nothing matches. */
+  /**
+   * The completed command line, or the input unchanged when nothing matches. A first token
+   * completed to a symbol ends with the space that separates it from the function code.
+   */
   readonly text: string;
   /** Every possible completion of the line, in candidate order; empty when nothing matches. */
   readonly matches: readonly string[];
@@ -73,5 +76,10 @@ export function complete(input: string, candidates: readonly string[], cycle: nu
   }
   if (matches.length === 0) return { text: input, matches: [] };
 
-  return { text: matches[((cycle % matches.length) + matches.length) % matches.length], matches };
+  const completed = matches[((cycle % matches.length) + matches.length) % matches.length];
+  // What follows a ticker is always the function code, so a completed symbol brings its own
+  // separating space; a code that stands alone is already a whole command. `matches` stay unspaced
+  // because they are what the input publishes as data-completions.
+  const spaced = index === 0 && normalizeSymbol(completed.toUpperCase()) !== null;
+  return { text: spaced ? `${completed} ` : completed, matches };
 }

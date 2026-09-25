@@ -13,8 +13,9 @@ const tab = (input: string, entries: readonly string[] = [], cycle = 0) =>
 
 describe("complete", () => {
   it("replaces the trailing token with the first prefix match", () => {
+    // A completed symbol carries the space that separates it from the function code.
     expect(complete("70", ["700.HK", "9988.HK"], 0)).toEqual({
-      text: "700.HK",
+      text: "700.HK ",
       matches: ["700.HK"],
     });
   });
@@ -147,7 +148,7 @@ describe("completionCandidates", () => {
 
 describe("the command bar as the user sees it", () => {
   it("completes a symbol used earlier in the session", () => {
-    expect(tab("70", ["700 Q"]).text).toBe("700.HK");
+    expect(tab("70", ["700 Q"]).text).toBe("700.HK ");
     expect(tab("70", ["700 Q"]).matches).toEqual(["700.HK"]);
   });
 
@@ -155,8 +156,8 @@ describe("the command bar as the user sees it", () => {
     // HistoryState.entries is newest first, so 705 Q is the most recent command here.
     const entries = ["705 Q", "9988 Q", "700 Q"];
     expect(tab("7", entries).matches).toEqual(["705.HK", "700.HK"]);
-    expect(tab("7", entries).text).toBe("705.HK");
-    expect(tab("7", entries, 1).text).toBe("700.HK");
+    expect(tab("7", entries).text).toBe("705.HK ");
+    expect(tab("7", entries, 1).text).toBe("700.HK ");
   });
 
   it("completes a second token to a function code", () => {
@@ -194,5 +195,42 @@ describe("the command bar as the user sees it", () => {
     expect(tab("", ["700 Q"])).toEqual({ text: "", matches: [] });
     expect(tab("XYZ", ["700 Q"])).toEqual({ text: "XYZ", matches: [] });
     expect(tab("700 GP 6", ["700 GP 6M"])).toEqual({ text: "700 GP 6", matches: [] });
+  });
+});
+
+describe("the space after a completed symbol", () => {
+  it("adds one trailing space, so the next keystroke starts the function code", () => {
+    expect(tab("9", ["9988 GP"]).text).toBe("9988.HK ");
+    expect(tab("70", ["700 Q"]).text).toBe("700.HK ");
+  });
+
+  it("leaves a code that stands alone unspaced, because it is already a whole command", () => {
+    for (const code of STANDALONE) {
+      expect(tab(code, ["700 Q"]).text).toBe(code);
+    }
+    expect(tab("c", ["700 Q"]).text).toBe("CLEAR");
+  });
+
+  it("never spaces the second token", () => {
+    expect(tab("9988.HK G", ["9988 GP"]).text).toBe("9988.HK GP");
+    expect(tab("700 ", ["700 Q"]).text).toBe("700 Q");
+  });
+
+  it("keeps the space out of the candidate list that feeds data-completions", () => {
+    expect(tab("9", ["9988 GP", "9989 GP"]).matches).toEqual(["9988.HK", "9989.HK"]);
+    expect(tab("70", ["700 Q"]).matches).toEqual(["700.HK"]);
+  });
+
+  it("keeps cycling the same symbols with the space present", () => {
+    // The space belongs to the completed text, so the cycle still reads the stem the user typed.
+    const entries = ["705 Q", "700 Q"];
+    expect(tab("70", entries, 0).text).toBe("705.HK ");
+    expect(tab("70", entries, 1).text).toBe("700.HK ");
+    expect(tab("70", entries, 2).text).toBe("705.HK ");
+    expect(tab("70", entries, -1).text).toBe("700.HK ");
+  });
+
+  it("treats a completed symbol plus its space as ready for the code, not as a new cycle", () => {
+    expect(completionCandidates("9988.HK ", ["9988 GP"])).toEqual(AFTER_SYMBOL);
   });
 });
