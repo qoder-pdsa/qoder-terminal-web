@@ -40,6 +40,7 @@ docker compose up --build                     # includes PostgreSQL and user (ru
 | `N` / `700 N` | News for one symbol, or the first watchlist group merged and de-duplicated | ✅ |
 | `W` | Watchlist groups (the Longbridge account's; mock has one demo group) with prices polled every 5 s; click a row for `Q` | ✅ |
 | `700 CF` | Intraday capital flow: net inflow per minute + large / medium / small order distribution | ✅ |
+| `CLEAR` | Empties the grid; every open panel header also has a `×` that closes just that panel | ✅ |
 
 Environment variables: `VITE_DATA_URL` (default `http://localhost:8081`) and `VITE_ANALYST_URL` (default `http://localhost:8082`).
 

@@ -124,6 +124,25 @@ test("layout is a fixed 2x2 grid with empty slots", async ({ page }) => {
   expect(new Set(boxes.map((b) => b.y)).size).toBe(2);
 });
 
+test("× closes one panel and CLEAR empties the grid", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 Q");
+  await run(page, "9988 Q");
+  await expect(page.getByTestId("quote-panel")).toHaveCount(2);
+
+  const firstClose = page.getByTestId("close-panel").first();
+  await expect(firstClose).toHaveAttribute("aria-label", "Close 9988.HK Q");
+  await firstClose.click();
+  await expect(page.getByTestId("quote-panel")).toHaveCount(1);
+  await expect(page.getByTestId("empty-slot")).toHaveCount(3);
+  await expect(page.getByRole("heading", { name: "700.HK Q" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "9988.HK Q" })).toHaveCount(0);
+
+  await run(page, "CLEAR");
+  await expect(page.getByTestId("empty-slot")).toHaveCount(4);
+  await expect(page.getByTestId("quote-panel")).toHaveCount(0);
+});
+
 test("N lists a symbol's news with outbound links", async ({ page }) => {
   await page.goto("./");
   await run(page, "700 N");
