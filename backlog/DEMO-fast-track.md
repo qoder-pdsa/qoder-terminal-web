@@ -83,3 +83,12 @@ assign it to the Full-Stack Developer with `sdlcId: 10003`.
 - [ ] `make lint test` passes
 - Out of scope: readout for the intraday (Q) chart, SMA values in the readout, touch devices
 - Accepted 2026-09-26.
+
+## DEMO-10 · Command bar keyboard shortcuts
+- **Repo**: qoder-terminal-web (frontend only)
+- Goal: keyboard-first navigation like a real terminal — `Esc` clears the command bar draft (and any error line), `/` from anywhere on the page focuses the command bar (unless the focus is already in an input), and `Ctrl+L` (`Cmd+L` on macOS) runs `CLEAR`. The top-bar hint gains `? for keys` that toggles a small cheat-sheet listing the shortcuts, ↑/↓ history and Tab completion.
+- [ ] Pure, unit-tested `shortcutFor(event)` in `src/commands/shortcuts.ts` mapping a keyboard event to `"clear-draft" | "focus" | "clear-grid" | "help" | null`, ignoring events with unrelated modifiers and events from other inputs
+- [ ] Global `keydown` listener attached in `App.tsx` and removed on unmount; `?` cheat-sheet has `data-testid="key-help"` and closes with `Esc`
+- [ ] UI e2e: type `70`, press `Esc` → input empty; click the page body, press `/` → input focused; open `700 Q`, press `Ctrl+L` → four `empty-slot`; press `?` → `key-help` visible, `Esc` → hidden
+- [ ] `make lint test` passes
+- Out of scope: customizable bindings, panel focus cycling
