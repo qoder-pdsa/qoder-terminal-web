@@ -13,11 +13,15 @@
      two values to switch. Kept separate from --up/--down, which color text and stay as they are. */
   --candle-up: #ff4d4d;
   --candle-down: #3ad17a;
+  /* Menu bar background. Deliberately not `var(--tool)` even though the values match today:
+     the bar is a surface, --tool is a text accent, and retinting one must not move the other.
+     Kept light enough that the bar's existing black text (and the 0.7-opacity hint) stays AA legible. */
+  --topbar-bg: #5fb3ff;
   font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
 }
 body { margin: 0; background: var(--bg); color: var(--text); }
 .terminal { min-height: 100vh; display: flex; flex-direction: column; }
-.topbar { display: flex; justify-content: space-between; padding: 6px 12px; background: var(--amber); color: #000; font-weight: 700; }
+.topbar { display: flex; justify-content: space-between; padding: 6px 12px; background: var(--topbar-bg); color: #000; font-weight: 700; }
 .topbar .muted { color: #000; opacity: 0.7; }
 .command-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
 .command-bar input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--amber); font: inherit; font-size: 16px; text-transform: none; }
