@@ -412,3 +412,102 @@ test("CF requires a symbol", async ({ page }) => {
   await run(page, "CF");
   await expect(page.getByTestId("command-error")).toContainText("CF requires a symbol");
 });
+
+/** WCAG 2.1 contrast ratio of two theme tokens, read from the live document. */
+async function tokenContrast(page: import("@playwright/test").Page, fg: string, bg: string): Promise<number> {
+  return page.evaluate(({ fg, bg }) => {
+    const style = getComputedStyle(document.documentElement);
+    const channels = (name: string) => {
+      const hex = style.getPropertyValue(name).trim().replace(/^#/, "");
+      const full = hex.length === 3 ? [...hex].map((c) => c + c).join("") : hex;
+      return [0, 2, 4].map((i) => Number.parseInt(full.slice(i, i + 2), 16) / 255);
+    };
+    const luminance = (name: string) => {
+      const [r, g, b] = channels(name).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const [higher, lower] = [luminance(fg), luminance(bg)].sort((a, b) => b - a);
+    return (higher + 0.05) / (lower + 0.05);
+  }, { fg, bg });
+}
+
+/** Every foreground the terminal draws, against the surface it sits on. */
+const READABLE_PAIRS = [
+  ["--text", "--bg"],
+  ["--muted", "--bg"],
+  ["--amber", "--bg"],
+  ["--down", "--bg"],
+  ["--text", "--panel"],
+  ["--muted", "--panel"],
+  ["--amber", "--panel"],
+  ["--down", "--panel"],
+  ["--on-accent", "--amber"],
+] as const;
+
+test.describe("theme", () => {
+  // Desktop Chrome emulates a light system preference; saying so keeps the intent explicit.
+  test.use({ colorScheme: "light" });
+
+  test("follows the system preference, switches on click, and survives a reload", async ({ page }) => {
+    await page.goto("./");
+    // Nothing is saved yet, so the light system preference decides.
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    const toggle = page.getByTestId("theme-toggle");
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  });
+
+  test("a saved theme wins over the system preference", async ({ page }) => {
+    await page.goto("./");
+    await page.getByTestId("theme-toggle").click();
+    await expect(page.evaluate(() => localStorage.getItem("qoder-terminal-theme"))).resolves.toBe("dark");
+
+    // A reload starts from storage again; the light system preference must not win over it.
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  });
+
+  test("command bar, grid, cheat-sheet and errors stay readable in both themes", async ({ page }) => {
+    await page.goto("./");
+    await run(page, "GP");
+    await expect(page.getByTestId("command-error")).toBeVisible();
+
+    for (const theme of ["light", "dark"]) {
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await expect(page.getByTestId("command-input")).toBeVisible();
+      await expect(page.locator("main.grid")).toBeVisible();
+      await expect(page.getByTestId("empty-slot")).toHaveCount(4);
+      // The top bar carries the command cheat-sheet.
+      await expect(page.locator(".topbar .muted")).toContainText("CLEAR");
+      await expect(page.getByTestId("theme-toggle")).toBeVisible();
+      await expect(page.getByTestId("command-error")).toBeVisible();
+
+      for (const [fg, bg] of READABLE_PAIRS) {
+        expect(await tokenContrast(page, fg, bg), `${fg} on ${bg} in ${theme}`).toBeGreaterThanOrEqual(4.5);
+      }
+      await page.getByTestId("theme-toggle").click();
+    }
+  });
+
+  test("an open panel keeps working across a theme switch", async ({ page }) => {
+    await page.goto("./");
+    await run(page, "700 GP");
+    const chart = page.getByTestId("graph-chart");
+    await expect(chart).toHaveAttribute("data-panes", "2");
+    await expect(chart.locator("canvas").first()).toBeVisible();
+
+    await page.getByTestId("theme-toggle").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // The chart is redrawn in the new palette instead of being dropped or refetched.
+    await expect(chart).toHaveAttribute("data-panes", "2");
+    await expect(chart.locator("canvas").first()).toBeVisible();
+    await expect(page.getByTestId("candle-readout")).toBeVisible();
+  });
+});

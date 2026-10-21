@@ -6,6 +6,7 @@ import { parseCommand } from "./commands/parse";
 import { closePanel, openPanel, toSlots, type OpenPanel } from "./layout/slots";
 import { panelTitle, renderPanel } from "./panels/registry";
 import { panelRange, selectPanelRange } from "./panels/rangeState";
+import { useTheme } from "./theme/useTheme";
 
 /** A running Tab session: repeated presses cycle the candidates of the line the user typed. */
 interface CompletionSession {
@@ -15,6 +16,7 @@ interface CompletionSession {
 }
 
 export function App() {
+  const { theme, toggleTheme } = useTheme();
   const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
   const [panels, setPanels] = useState<OpenPanel[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -95,6 +97,16 @@ export function App() {
       <header className="topbar">
         <span className="brand">QODER TERMINAL</span>
         <span className="muted">Q · GP · N · W · CF · CLEAR · ASK</span>
+        <button
+          type="button"
+          className="theme-toggle"
+          data-testid="theme-toggle"
+          aria-pressed={theme === "light"}
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          onClick={toggleTheme}
+        >
+          {theme === "dark" ? "LIGHT" : "DARK"}
+        </button>
       </header>
       <form onSubmit={onSubmit} className="command-bar">
         <span className="prompt">&gt;</span>

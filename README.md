@@ -46,6 +46,9 @@ docker compose up --build                     # includes PostgreSQL and user (ru
 the space that precedes the function code already typed) or a function code (`700 G` → `700 GP`). Repeated
 `Tab` cycles the candidates, `Shift+Tab` cycles back, and `↑` / `↓` still recall this session's commands.
 
+The top bar's `LIGHT` / `DARK` button switches the theme without a reload. The choice is kept in
+`localStorage`; a first visit follows the system's `prefers-color-scheme`.
+
 Environment variables: `VITE_DATA_URL` (default `http://localhost:8081`) and `VITE_ANALYST_URL` (default `http://localhost:8082`).
 
 ## Docs
