@@ -5,7 +5,8 @@
 body { margin: 0; background: var(--bg); color: var(--text); }
 .terminal { min-height: 100vh; display: flex; flex-direction: column; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px; background: var(--amber); color: var(--on-accent); font-weight: 700; }
-.topbar .muted { color: var(--on-accent); opacity: 0.7; }
+/* Full-opacity token, never `opacity`: blending white over the light amber renders at 3.3:1. */
+.topbar .muted { color: var(--on-accent-muted); }
 /* The theme toggle sits on the accent bar, so it is drawn in the accent's own text color. */
 .theme-toggle { background: transparent; border: 1px solid var(--on-accent); color: var(--on-accent); font: inherit; font-size: 11px; letter-spacing: 0.05em; padding: 0 6px; cursor: pointer; }
 .theme-toggle:hover { background: var(--on-accent); color: var(--amber); }

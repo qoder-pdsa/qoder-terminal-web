@@ -12,6 +12,10 @@
   /* accent (the terminal's amber) and the text drawn on top of it */
   --amber: #ffa028;
   --on-accent: #000;
+  /* De-emphasized text on the accent bar. A token, not `--on-accent` blended with `opacity`:
+     the light palette has no headroom for blending (full-strength white is only 5.0:1 there).
+     This value is what 70% black over the dark amber already painted, so dark is unchanged. */
+  --on-accent-muted: #4d300c;
   --hover: #161616;
   --focus: #ffa028;
   /* error / direction */
@@ -35,6 +39,9 @@
   --muted: #57534e;
   --amber: #b45309;
   --on-accent: #fff;
+  /* Warm white rather than a blend of `--on-accent`: over this amber only a color of relative
+     luminance >= 0.891 clears 4.5:1, so any blending toward the brown fails AA. */
+  --on-accent-muted: #fff8f2;
   --hover: #eae8e5;
   --focus: #1c1917;
   --up: #15803d;

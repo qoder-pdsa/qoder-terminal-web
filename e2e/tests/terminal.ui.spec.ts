@@ -442,6 +442,65 @@ const READABLE_PAIRS = [
   ["--amber", "--panel"],
   ["--down", "--panel"],
   ["--on-accent", "--amber"],
+  ["--on-accent-muted", "--amber"],
+] as const;
+
+/**
+ * WCAG 2.1 contrast of what an element really paints: its computed `color` composited over the
+ * first non-transparent backdrop behind it, with the opacity of the element and its ancestors
+ * applied. Token pairs cannot see a rule that blends with `opacity` or `rgba()` — that is how a
+ * light hint line measured 5.02:1 as tokens while rendering at 3.28:1.
+ */
+async function renderedContrast(page: import("@playwright/test").Page, selector: string): Promise<number> {
+  return page.evaluate((sel) => {
+    const channels = (value: string): [number, number, number] | null => {
+      const match = /rgba?\(([^)]*)\)/.exec(value);
+      if (!match) return null;
+      const parts = match[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+      if (parts.length < 3 || (parts.length > 3 && parts[3] === 0)) return null;
+      return [parts[0], parts[1], parts[2]];
+    };
+    const luminance = ([r, g, b]: [number, number, number]) => {
+      const channel = (v: number) => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+
+    const target = document.querySelector(sel);
+    if (!(target instanceof HTMLElement)) throw new Error(`not rendered: ${sel}`);
+
+    let opacity = 1;
+    for (let node: HTMLElement | null = target; node; node = node.parentElement) {
+      opacity *= Number(getComputedStyle(node).opacity);
+    }
+
+    // The search starts at the element itself: a button in `:hover` paints its own background.
+    let found: [number, number, number] | null = null;
+    for (let node: HTMLElement | null = target; node && !found; node = node.parentElement) {
+      found = channels(getComputedStyle(node).backgroundColor);
+    }
+    const foreground = channels(getComputedStyle(target).color);
+    if (!foreground || !found) throw new Error(`cannot resolve what ${sel} paints`);
+    const backdrop = found;
+
+    const mix = (index: number) => foreground[index] * opacity + backdrop[index] * (1 - opacity);
+    const [higher, lower] = [luminance([mix(0), mix(1), mix(2)]), luminance(backdrop)].sort((a, b) => b - a);
+    return (higher + 0.05) / (lower + 0.05);
+  }, selector);
+}
+
+/** The surfaces the brief names, measured as painted: top bar and cheat-sheet, command bar, grid, errors. */
+const RENDERED_SURFACES = [
+  ".topbar .brand",
+  ".topbar .muted",
+  '[data-testid="theme-toggle"]',
+  ".prompt",
+  '[data-testid="command-input"]',
+  '[data-testid="command-error"]',
+  '[data-testid="empty-slot"] h2',
+  '[data-testid="empty-slot"] .muted',
 ] as const;
 
 test.describe("theme", () => {
@@ -492,6 +551,14 @@ test.describe("theme", () => {
       for (const [fg, bg] of READABLE_PAIRS) {
         expect(await tokenContrast(page, fg, bg), `${fg} on ${bg} in ${theme}`).toBeGreaterThanOrEqual(4.5);
       }
+
+      // Tokens are the palette floor; this is what the user sees. The click below leaves the
+      // pointer on the toggle, so park it first and measure the toggle in its resting state.
+      await page.mouse.move(0, 0);
+      for (const selector of RENDERED_SURFACES) {
+        expect(await renderedContrast(page, selector), `${selector} as painted in ${theme}`).toBeGreaterThanOrEqual(4.5);
+      }
+
       await page.getByTestId("theme-toggle").click();
     }
   });
