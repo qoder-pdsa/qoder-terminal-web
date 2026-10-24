@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HistogramSeries, type IChartApi, type UTCTimestamp } from "lightweight-charts";
 import { fetchCapitalFlow, type CapitalBuckets, type CapitalFlow } from "../api/data";
+import { useTheme } from "../theme/useTheme";
 import { exchangeTimeZone, formatAmount, formatClock, netSign, toFlowBars } from "./capitalFlowData";
 import { createTerminalChart, readChartTheme } from "./chartTheme";
 import { formatHkTime } from "./quoteFormat";
@@ -13,6 +14,8 @@ const BUCKETS: (keyof CapitalBuckets)[] = ["large", "medium", "small"];
 export function CapitalFlowPanel({ symbol }: { symbol: string }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const containerRef = useRef<HTMLDivElement>(null);
+  // The canvas cannot follow a CSS variable, so the chart is remounted when the theme changes.
+  const { theme } = useTheme();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -32,7 +35,7 @@ export function CapitalFlowPanel({ symbol }: { symbol: string }) {
     if (state.status !== "ok" || !container || state.data.flow.length === 0) return;
     const chart = mountFlowChart(container, state.data);
     return () => chart.remove();
-  }, [state]);
+  }, [state, theme]);
 
   if (state.status === "loading") return <p className="muted">LOADING {symbol} CAPITAL FLOW…</p>;
   if (state.status === "error") return <p className="down" data-testid="cf-error">ERROR: {state.message}</p>;

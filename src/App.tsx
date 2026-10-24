@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { HistoryRange } from "./api/data";
-import { complete, completionCandidates } from "./commands/complete";
+import { complete, completesOn, completionCandidates } from "./commands/complete";
 import { back, current, EMPTY_HISTORY, forward, push, type HistoryState } from "./commands/history";
 import { parseCommand } from "./commands/parse";
 import { closePanel, openPanel, toSlots, type OpenPanel } from "./layout/slots";
 import { panelTitle, renderPanel } from "./panels/registry";
 import { panelRange, selectPanelRange } from "./panels/rangeState";
+import { useTheme } from "./theme/useTheme";
 
 /** A running Tab session: repeated presses cycle the candidates of the line the user typed. */
 interface CompletionSession {
@@ -15,6 +16,7 @@ interface CompletionSession {
 }
 
 export function App() {
+  const { theme, toggleTheme } = useTheme();
   const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
   const [panels, setPanels] = useState<OpenPanel[]>([]);
   const [message, setMessage] = useState<string | null>(null);
@@ -52,16 +54,15 @@ export function App() {
     setHistory((prev) => push(prev, input));
   };
 
-  /** Tab completes the token under the cursor; pressing it again cycles the same candidates. */
+  /** Plain Tab completes the token under the cursor; pressing it again cycles the same candidates. */
   const completeToken = (e: KeyboardEvent<HTMLInputElement>) => {
     // Tab must never move the focus out of the command bar, not even when nothing matches.
     e.preventDefault();
-    const step = e.shiftKey ? -1 : 1;
     const session = sessionRef.current;
     // Re-completing what the last press produced continues that cycle; anything else starts one.
     const continuing = session !== null && session.result === input ? session : null;
     const stem = continuing ? continuing.stem : input;
-    const cycle = continuing ? continuing.cycle + step : e.shiftKey ? -1 : 0;
+    const cycle = continuing ? continuing.cycle + 1 : 0;
     const next = complete(stem, completionCandidates(stem, history.entries), cycle);
     if (next.matches.length === 0) return;
     sessionRef.current = { stem, result: next.text, cycle };
@@ -76,7 +77,8 @@ export function App() {
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       setHistory(forward);
-    } else if (e.key === "Tab") {
+    } else if (completesOn(e.key, e.shiftKey)) {
+      // Shift+Tab is deliberately not ours: it is the only way focus can reach the theme toggle.
       completeToken(e);
     }
   };
@@ -95,6 +97,16 @@ export function App() {
       <header className="topbar">
         <span className="brand">QODER TERMINAL</span>
         <span className="muted">Q · GP · N · W · CF · CLEAR · ASK</span>
+        <button
+          type="button"
+          className="theme-toggle"
+          data-testid="theme-toggle"
+          aria-pressed={theme === "light"}
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          onClick={toggleTheme}
+        >
+          {theme === "dark" ? "LIGHT" : "DARK"}
+        </button>
       </header>
       <form onSubmit={onSubmit} className="command-bar">
         <span className="prompt">&gt;</span>

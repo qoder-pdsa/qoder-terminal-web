@@ -228,7 +228,10 @@ test("Tab completes a symbol from the session and then a function code", async (
   await expect(input).toHaveValue("700 Q");
 });
 
-test("Tab cycles through the candidates and Shift+Tab cycles back", async ({ page }) => {
+// Shift+Tab no longer cycles the candidates backwards. It was released to focus movement so the
+// theme toggle is reachable from the command bar — an accepted behaviour change (prd-v1 §2 / AC-08).
+// Forward cycling with plain Tab is unchanged, wrap included.
+test("Tab cycles forward through the candidates and leaves Shift+Tab to the browser", async ({ page }) => {
   await page.goto("./");
   const input = page.getByTestId("command-input");
   await input.fill("700 ");
@@ -237,15 +240,18 @@ test("Tab cycles through the candidates and Shift+Tab cycles back", async ({ pag
     "700 Q,700 GP,700 N,700 W,700 CF",
   );
 
+  for (const expected of ["700 Q", "700 GP", "700 N", "700 W", "700 CF"]) {
+    await input.press("Tab");
+    await expect(input).toHaveValue(expected);
+  }
+  // Wraps at the end of the candidate list, as it always did.
   await input.press("Tab");
   await expect(input).toHaveValue("700 Q");
-  await input.press("Tab");
-  await expect(input).toHaveValue("700 GP");
+
+  // Shift+Tab is not the command bar's any more: it neither rewrites the line nor holds the focus.
   await input.press("Shift+Tab");
   await expect(input).toHaveValue("700 Q");
-  await input.press("Tab");
-  await input.press("Tab");
-  await expect(input).toHaveValue("700 N");
+  await expect(page.getByTestId("theme-toggle")).toBeFocused();
 });
 
 test("Tab with nothing to complete leaves the input and keeps the focus", async ({ page }) => {
@@ -411,4 +417,431 @@ test("CF requires a symbol", async ({ page }) => {
   await page.goto("./");
   await run(page, "CF");
   await expect(page.getByTestId("command-error")).toContainText("CF requires a symbol");
+});
+
+/** WCAG 2.1 contrast ratio of two theme tokens, read from the live document. */
+async function tokenContrast(page: import("@playwright/test").Page, fg: string, bg: string): Promise<number> {
+  return page.evaluate(({ fg, bg }) => {
+    const style = getComputedStyle(document.documentElement);
+    const channels = (name: string) => {
+      const hex = style.getPropertyValue(name).trim().replace(/^#/, "");
+      const full = hex.length === 3 ? [...hex].map((c) => c + c).join("") : hex;
+      return [0, 2, 4].map((i) => Number.parseInt(full.slice(i, i + 2), 16) / 255);
+    };
+    const luminance = (name: string) => {
+      const [r, g, b] = channels(name).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const [higher, lower] = [luminance(fg), luminance(bg)].sort((a, b) => b - a);
+    return (higher + 0.05) / (lower + 0.05);
+  }, { fg, bg });
+}
+
+/** Every foreground the terminal draws, against the surface it sits on. */
+const READABLE_PAIRS = [
+  ["--text", "--bg"],
+  ["--muted", "--bg"],
+  ["--amber", "--bg"],
+  ["--down", "--bg"],
+  ["--text", "--panel"],
+  ["--muted", "--panel"],
+  ["--amber", "--panel"],
+  ["--down", "--panel"],
+  ["--on-accent", "--amber"],
+  ["--on-accent-muted", "--amber"],
+] as const;
+
+/**
+ * WCAG 2.1 contrast of what an element really paints: its computed `color` composited over the
+ * first non-transparent backdrop behind it, with the opacity of the element and its ancestors
+ * applied. Token pairs cannot see a rule that blends with `opacity` or `rgba()` — that is how a
+ * light hint line measured 5.02:1 as tokens while rendering at 3.28:1.
+ */
+async function renderedContrast(page: import("@playwright/test").Page, selector: string): Promise<number> {
+  return page.evaluate((sel) => {
+    const channels = (value: string): [number, number, number] | null => {
+      const match = /rgba?\(([^)]*)\)/.exec(value);
+      if (!match) return null;
+      const parts = match[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+      if (parts.length < 3 || (parts.length > 3 && parts[3] === 0)) return null;
+      return [parts[0], parts[1], parts[2]];
+    };
+    const luminance = ([r, g, b]: [number, number, number]) => {
+      const channel = (v: number) => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+    };
+
+    const target = document.querySelector(sel);
+    if (!(target instanceof HTMLElement)) throw new Error(`not rendered: ${sel}`);
+
+    let opacity = 1;
+    for (let node: HTMLElement | null = target; node; node = node.parentElement) {
+      opacity *= Number(getComputedStyle(node).opacity);
+    }
+
+    // The search starts at the element itself: a button in `:hover` paints its own background.
+    let found: [number, number, number] | null = null;
+    for (let node: HTMLElement | null = target; node && !found; node = node.parentElement) {
+      found = channels(getComputedStyle(node).backgroundColor);
+    }
+    const foreground = channels(getComputedStyle(target).color);
+    if (!foreground || !found) throw new Error(`cannot resolve what ${sel} paints`);
+    const backdrop = found;
+
+    const mix = (index: number) => foreground[index] * opacity + backdrop[index] * (1 - opacity);
+    const [higher, lower] = [luminance([mix(0), mix(1), mix(2)]), luminance(backdrop)].sort((a, b) => b - a);
+    return (higher + 0.05) / (lower + 0.05);
+  }, selector);
+}
+
+/** The surfaces the brief names, measured as painted: top bar and cheat-sheet, command bar, grid, errors. */
+const RENDERED_SURFACES = [
+  ".topbar .brand",
+  ".topbar .muted",
+  '[data-testid="theme-toggle"]',
+  ".prompt",
+  '[data-testid="command-input"]',
+  '[data-testid="command-error"]',
+  '[data-testid="empty-slot"] h2',
+  '[data-testid="empty-slot"] .muted',
+] as const;
+
+test.describe("theme", () => {
+  // Desktop Chrome emulates a light system preference; saying so keeps the intent explicit.
+  test.use({ colorScheme: "light" });
+
+  test("follows the system preference, switches on click, and survives a reload", async ({ page }) => {
+    await page.goto("./");
+    // Nothing is saved yet, so the light system preference decides.
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    const toggle = page.getByTestId("theme-toggle");
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  });
+
+  test("a saved theme wins over the system preference", async ({ page }) => {
+    await page.goto("./");
+    await page.getByTestId("theme-toggle").click();
+    await expect(page.evaluate(() => localStorage.getItem("qoder-terminal-theme"))).resolves.toBe("dark");
+
+    // A reload starts from storage again; the light system preference must not win over it.
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  });
+
+  test("command bar, grid, cheat-sheet and errors stay readable in both themes", async ({ page }) => {
+    await page.goto("./");
+    await run(page, "GP");
+    await expect(page.getByTestId("command-error")).toBeVisible();
+
+    for (const theme of ["light", "dark"]) {
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await expect(page.getByTestId("command-input")).toBeVisible();
+      await expect(page.locator("main.grid")).toBeVisible();
+      await expect(page.getByTestId("empty-slot")).toHaveCount(4);
+      // The top bar carries the command cheat-sheet.
+      await expect(page.locator(".topbar .muted")).toContainText("CLEAR");
+      await expect(page.getByTestId("theme-toggle")).toBeVisible();
+      await expect(page.getByTestId("command-error")).toBeVisible();
+
+      for (const [fg, bg] of READABLE_PAIRS) {
+        expect(await tokenContrast(page, fg, bg), `${fg} on ${bg} in ${theme}`).toBeGreaterThanOrEqual(4.5);
+      }
+
+      // Tokens are the palette floor; this is what the user sees. The click below leaves the
+      // pointer on the toggle, so park it first and measure the toggle in its resting state.
+      await page.mouse.move(0, 0);
+      for (const selector of RENDERED_SURFACES) {
+        expect(await renderedContrast(page, selector), `${selector} as painted in ${theme}`).toBeGreaterThanOrEqual(4.5);
+      }
+
+      await page.getByTestId("theme-toggle").click();
+    }
+  });
+
+  test("an open panel keeps working across a theme switch", async ({ page }) => {
+    await page.goto("./");
+    await run(page, "700 GP");
+    const chart = page.getByTestId("graph-chart");
+    await expect(chart).toHaveAttribute("data-panes", "2");
+    await expect(chart.locator("canvas").first()).toBeVisible();
+
+    await page.getByTestId("theme-toggle").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // The chart is redrawn in the new palette instead of being dropped or refetched.
+    await expect(chart).toHaveAttribute("data-panes", "2");
+    await expect(chart.locator("canvas").first()).toBeVisible();
+    await expect(page.getByTestId("candle-readout")).toBeVisible();
+  });
+
+  // The probes test-design-v2 §3 asks for. Titles carry the TC id so QA can map a result straight
+  // back to the case index without guessing.
+
+  /** P3 — the storage key as the page sees it. */
+  function stored(page: import("@playwright/test").Page) {
+    return page.evaluate(() => localStorage.getItem("qoder-terminal-theme"));
+  }
+
+  /** P1 — `timeOrigin` cannot change without a navigation, so an unchanged value proves no reload. */
+  function timeOrigin(page: import("@playwright/test").Page) {
+    return page.evaluate(() => performance.timeOrigin);
+  }
+
+  /**
+   * P6 — make storage refuse before any page script runs. `access` rejects the property itself,
+   * `read` rejects `getItem`, `write` rejects `setItem` while reads still work (a full quota).
+   * Every call is recorded on `window.__storageProbe`, because a throwing getter alone cannot show
+   * that nothing was written (H3, comment 10134).
+   */
+  async function blockStorage(
+    page: import("@playwright/test").Page,
+    side: "access" | "read" | "write",
+  ) {
+    await page.addInitScript((which) => {
+      const probe = { attempts: [] as string[], writes: [] as string[] };
+      (window as unknown as Record<string, unknown>).__storageProbe = probe;
+      const refuse = (op: string): never => {
+        throw new DOMException(`storage ${op} is blocked`, "SecurityError");
+      };
+      if (which === "access") {
+        Object.defineProperty(window, "localStorage", {
+          configurable: true,
+          get: (): never => refuse("access"),
+        });
+        return;
+      }
+      const backing = new Map<string, string>();
+      Object.defineProperty(window, "localStorage", {
+        configurable: true,
+        value: {
+          getItem: (key: string) => (which === "read" ? refuse("read") : (backing.get(key) ?? null)),
+          setItem(key: string, value: string) {
+            probe.attempts.push(`${key}=${value}`);
+            if (which === "write") refuse("write");
+            backing.set(key, value);
+            probe.writes.push(`${key}=${value}`);
+          },
+        },
+      });
+    }, side);
+  }
+
+  /** What the app actually did to storage: what it tried to write, and what landed. */
+  function storageProbe(page: import("@playwright/test").Page) {
+    return page.evaluate(() => {
+      const probe = (window as unknown as Record<string, unknown>).__storageProbe as
+        | { attempts: string[]; writes: string[] }
+        | undefined;
+      return { attempts: probe?.attempts ?? [], writes: probe?.writes ?? [] };
+    });
+  }
+
+  /** TC03 / AC-01b — with no human choice the theme follows the system while the page stays open. */
+  test("TC03: follows the system preference live, without reloading", async ({ page }) => {
+    await page.goto("./");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    // Nothing has been chosen, so nothing is stored: a theme the system decided is not a preference.
+    await expect(stored(page)).resolves.toBeNull();
+    const before = await timeOrigin(page);
+
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    expect(await timeOrigin(page)).toBe(before);
+    await expect(stored(page)).resolves.toBeNull();
+  });
+
+  /** TC06 / AC-03 — mirror of TC05: a saved light choice beats a dark system preference. */
+  test("TC06: a saved light choice survives a reload under an opposite dark system preference", async ({ page }) => {
+    await page.goto("./");
+    const toggle = page.getByTestId("theme-toggle");
+    // Real clicks establish the choice; injecting the stored value would prove nothing (H3).
+    await toggle.click();
+    await toggle.click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(stored(page)).resolves.toBe("light");
+
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(stored(page)).resolves.toBe("light");
+  });
+
+  /**
+   * TC13a / AC-10 — once a human has chosen, later system changes do not override it. With storage
+   * available this largely re-proves the saved-choice precedence of AC-03; the memory-only branch,
+   * which is the one that actually needs proving, is TC13b below.
+   */
+  test("TC13a: a choice made in this session beats later system preference changes", async ({ page }) => {
+    await page.goto("./");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    await page.getByTestId("theme-toggle").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+    const before = await timeOrigin(page);
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await timeOrigin(page)).toBe(before);
+  });
+
+  /** TC11 / AC-08 — reachable by keyboard, operable with Enter and Space, focus visible in both. */
+  test("TC11: Shift+Tab reaches the toggle, Enter and Space operate it, plain Tab still completes", async ({ page }) => {
+    await page.goto("./");
+    const input = page.getByTestId("command-input");
+    const toggle = page.getByTestId("theme-toggle");
+
+    // P2: record where the focus starts, so the traversal afterwards means something.
+    await input.click();
+    await expect(input).toBeFocused();
+
+    await input.press("Shift+Tab");
+    await expect(toggle).toBeFocused();
+    // The ring styles.css draws for `:focus-visible`, in the light theme.
+    await expect(toggle).toHaveCSS("outline-style", "solid");
+
+    await toggle.press("Enter");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(toggle).toBeFocused();
+    await expect(toggle).toHaveCSS("outline-style", "solid");
+
+    // Space operates it too, and must not scroll the page the way it would on a plain document.
+    const scrolled = await page.evaluate(() => window.scrollY);
+    await toggle.press("Space");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    expect(await page.evaluate(() => window.scrollY)).toBe(scrolled);
+
+    // Plain Tab completion never regressed: one hop forward lands back on the bar and still drafts.
+    await toggle.press("Tab");
+    await expect(input).toBeFocused();
+    await input.fill("700 ");
+    await input.press("Tab");
+    await expect(input).toHaveValue("700 Q");
+  });
+
+  /** TC12a / AC-09 — storage that cannot be read: no crash, no error, nothing persisted. */
+  test("TC12a: unreadable storage degrades silently and still follows the system", async ({ page }) => {
+    await blockStorage(page, "read");
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(String(error)));
+
+    await page.goto("./");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    // A manual choice still works, and lasts for the session.
+    await page.getByTestId("theme-toggle").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // Storage that could not be read is not written to either, so nothing was even attempted.
+    expect(await storageProbe(page)).toEqual({ attempts: [], writes: [] });
+
+    // With nothing stored, a reload follows the system again.
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    expect(errors, "uncaught page errors").toEqual([]);
+  });
+
+  /** TC12a variant — the `localStorage` property itself is rejected, as some privacy modes do. */
+  test("TC12a: a rejected localStorage property degrades silently too", async ({ page }) => {
+    await blockStorage(page, "access");
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(String(error)));
+
+    await page.goto("./");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    await page.getByTestId("theme-toggle").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await storageProbe(page)).toEqual({ attempts: [], writes: [] });
+
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    expect(errors, "uncaught page errors").toEqual([]);
+  });
+
+  /** TC12b / AC-09 — a full quota: reads work, the write is refused, and the refusal stays silent. */
+  test("TC12b: a refused write degrades silently and persists nothing", async ({ page }) => {
+    await blockStorage(page, "write");
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(String(error)));
+
+    await page.goto("./");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    await page.getByTestId("theme-toggle").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    // The write was attempted and refused, so nothing landed.
+    expect(await storageProbe(page)).toEqual({ attempts: ["qoder-terminal-theme=dark"], writes: [] });
+    await expect(stored(page)).resolves.toBeNull();
+
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    expect(errors, "uncaught page errors").toEqual([]);
+  });
+
+  /**
+   * TC13b / AC-10 — the case that actually proves a memory-only choice. Storage is blocked, so the
+   * choice exists nowhere but in this session, and a later system change must not override it.
+   */
+  test("TC13b: a memory-only choice beats a later system preference change", async ({ page }) => {
+    await blockStorage(page, "read");
+    await page.goto("./");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    await page.getByTestId("theme-toggle").click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await storageProbe(page)).toEqual({ attempts: [], writes: [] });
+
+    const before = await timeOrigin(page);
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await timeOrigin(page)).toBe(before);
+    expect(await storageProbe(page)).toEqual({ attempts: [], writes: [] });
+  });
+
+  /**
+   * TC02 / TC05 — the other system preference. H3 fixed this order (comment 10134, decision 2):
+   * agree the system with the target first, establish the saved choice with real clicks, prove it
+   * landed, and only then reverse the system preference and reload.
+   */
+  test.describe("with a dark system preference", () => {
+    test.use({ colorScheme: "dark" });
+
+    test("TC02: loads dark, following the system", async ({ page }) => {
+      await page.goto("./");
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+      await expect(stored(page)).resolves.toBeNull();
+    });
+
+    test("TC05: a saved dark choice survives a reload under an opposite light system preference", async ({ page }) => {
+      await page.goto("./");
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+      const toggle = page.getByTestId("theme-toggle");
+      // Away and back, so dark is what the visitor actually picked rather than what the system gave.
+      await toggle.click();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+      await toggle.click();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+      await expect(stored(page)).resolves.toBe("dark");
+
+      await page.emulateMedia({ colorScheme: "light" });
+      await page.reload();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+      await expect(stored(page)).resolves.toBe("dark");
+    });
+  });
 });

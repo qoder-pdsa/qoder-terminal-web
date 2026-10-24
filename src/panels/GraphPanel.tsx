@@ -9,9 +9,10 @@ import {
   type SeriesType,
 } from "lightweight-charts";
 import { fetchHistory, fetchIndicator, HISTORY_RANGES, type Candle, type HistoryRange } from "../api/data";
-import { crosshairDay, formatCandleReadout, toChartData, type ChartData } from "./chartData";
+import { useTheme } from "../theme/useTheme";
+import { crosshairDay, formatCandleReadout, toChartData, volumeBarColor, type ChartData } from "./chartData";
 import { paneStretchFactors, VOLUME_HEIGHT_SHARE, VOLUME_PANE_INDEX } from "./chartPanes";
-import { createTerminalChart, readChartTheme } from "./chartTheme";
+import { createTerminalChart, readChartTheme, type ChartTheme } from "./chartTheme";
 import {
   INITIAL_OVERLAY_STATE,
   OVERLAY_KEYS,
@@ -42,6 +43,8 @@ export function GraphPanel({
   const [overlayState, setOverlayState] = useState<OverlayState>(INITIAL_OVERLAY_STATE);
   const [hovered, setHovered] = useState<Candle | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // The canvas cannot follow a CSS variable, so the chart is remounted when the theme changes.
+  const { theme } = useTheme();
 
   const toggle = (key: OverlayKey) => setOverlayState((prev) => toggleOverlay(prev, key));
 
@@ -74,8 +77,19 @@ export function GraphPanel({
     const container = containerRef.current;
     if (state.status !== "ok" || !container) return;
     // Redrawing from already-fetched data: toggling an overlay never refetches the series.
-    const data: ChartData = { ...state.data, overlays: visibleOverlays(state.data.overlays, overlayState) };
-    const { chart, candleSeries } = mountChart(container, data);
+    // The volume bars are recolored here, not at fetch time, so a theme switch repaints them too.
+    const chartTheme = readChartTheme();
+    const colors = { up: chartTheme.color("--candle-up"), down: chartTheme.color("--candle-down") };
+    const data: ChartData = {
+      ...state.data,
+      overlays: visibleOverlays(state.data.overlays, overlayState),
+      // Both arrays come from the same contract candles in the same order.
+      volume: state.data.volume.map((bar, i) => ({
+        ...bar,
+        color: volumeBarColor(state.candles[i].open, state.candles[i].close, colors),
+      })),
+    };
+    const { chart, candleSeries } = mountChart(container, data, chartTheme);
     // Read back from the live chart, so the UI e2e fails if the volume pane ever goes missing.
     container.dataset.panes = String(chart.panes().length);
 
@@ -92,7 +106,7 @@ export function GraphPanel({
       chart.unsubscribeCrosshairMove(onCrosshair);
       chart.remove();
     };
-  }, [state, overlayState]);
+  }, [state, overlayState, theme]);
 
   // Off the chart the crosshair reports nothing, so the line falls back to the last candle and is never empty.
   const shown = state.status === "ok" ? (hovered ?? state.candles[state.candles.length - 1]) : undefined;
@@ -154,11 +168,10 @@ export function GraphPanel({
   );
 }
 
-function mountChart(container: HTMLElement, data: ChartData): {
+function mountChart(container: HTMLElement, data: ChartData, theme: ChartTheme): {
   chart: IChartApi;
   candleSeries: ISeriesApi<SeriesType>;
 } {
-  const theme = readChartTheme();
   const { color } = theme;
   const up = color("--candle-up");
   const down = color("--candle-down");

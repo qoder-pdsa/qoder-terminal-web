@@ -55,7 +55,8 @@ export function completionCandidates(input: string, entries: readonly string[]):
 
 /**
  * Complete the trailing token of `input` by case-insensitive prefix match against `candidates`.
- * `cycle` picks which match wins — Tab steps forward, Shift+Tab backward — and wraps at both ends.
+ * `cycle` picks which match wins and wraps at both ends: each press steps forward, and a negative
+ * cycle steps backward.
  */
 export function complete(input: string, candidates: readonly string[], cycle: number): Completion {
   const tokens = tokensOf(input);
@@ -82,4 +83,14 @@ export function complete(input: string, candidates: readonly string[], cycle: nu
   // because they are what the input publishes as data-completions.
   const spaced = index === 0 && normalizeSymbol(completed.toUpperCase()) !== null;
   return { text: spaced ? `${completed} ` : completed, matches };
+}
+
+/**
+ * Whether a keypress in the command bar should complete instead of doing what the browser would
+ * otherwise do with it. Plain Tab completes, and must never move the focus out of the bar;
+ * Shift+Tab is left alone on purpose — it is the only way focus can reach the theme toggle, so
+ * cycling the candidates backwards gives way to it (prd-v1 §2 / AC-08).
+ */
+export function completesOn(key: string, shiftKey: boolean): boolean {
+  return key === "Tab" && !shiftKey;
 }

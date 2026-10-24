@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BaselineSeries, LineSeries, type IChartApi, type UTCTimestamp } from "lightweight-charts";
 import { fetchIntraday, fetchQuote, type Intraday, type Quote } from "../api/data";
+import { useTheme } from "../theme/useTheme";
 import { exchangeTimeZone, formatAmount, formatClock } from "./capitalFlowData";
 import { createTerminalChart, readChartTheme } from "./chartTheme";
 import { toIntradayData } from "./intradayData";
@@ -18,6 +19,8 @@ type State =
 export function QuotePanel({ symbol }: { symbol: string }) {
   const [state, setState] = useState<State>({ status: "loading" });
   const containerRef = useRef<HTMLDivElement>(null);
+  // The canvas cannot follow a CSS variable, so the chart is remounted when the theme changes.
+  const { theme } = useTheme();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -51,7 +54,7 @@ export function QuotePanel({ symbol }: { symbol: string }) {
     if (state.status !== "ok" || !container || state.intraday.points.length === 0) return;
     const chart = mountIntradayChart(container, state.intraday);
     return () => chart.remove();
-  }, [state]);
+  }, [state, theme]);
 
   if (state.status === "loading") return <p className="muted">LOADING {symbol}…</p>;
   if (state.status === "error") return <p className="down" data-testid="quote-error">ERROR: {state.message}</p>;

@@ -44,7 +44,13 @@ docker compose up --build                     # includes PostgreSQL and user (ru
 
 `Tab` completes the token under the cursor — a symbol used earlier in the session (`70` → `700.HK `, with
 the space that precedes the function code already typed) or a function code (`700 G` → `700 GP`). Repeated
-`Tab` cycles the candidates, `Shift+Tab` cycles back, and `↑` / `↓` still recall this session's commands.
+`Tab` cycles the candidates, `Shift+Tab` moves the focus out of the command bar (to the theme button),
+and `↑` / `↓` still recall this session's commands.
+
+The top bar's `LIGHT` / `DARK` button switches the theme without a reload, and is reachable with
+`Shift+Tab` then `Enter` or `Space`. A first visit follows the system's `prefers-color-scheme` and keeps
+following it while the page is open; once the button is used, the choice is kept in `localStorage` and
+wins over the system from then on. Where storage is unavailable the choice lasts for the session only.
 
 Environment variables: `VITE_DATA_URL` (default `http://localhost:8081`) and `VITE_ANALYST_URL` (default `http://localhost:8082`).
 

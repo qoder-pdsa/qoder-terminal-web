@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { complete, completionCandidates } from "./complete";
+import { complete, completesOn, completionCandidates } from "./complete";
 import { FUNCTION_CODES } from "./parse";
 
 /** The codes that stand alone, i.e. the first-token candidates that are not symbols. */
@@ -232,5 +232,34 @@ describe("the space after a completed symbol", () => {
 
   it("treats a completed symbol plus its space as ready for the code, not as a new cycle", () => {
     expect(completionCandidates("9988.HK ", ["9988 GP"])).toEqual(AFTER_SYMBOL);
+  });
+});
+
+/**
+ * AC-08 — which keypress the command bar keeps for itself. Plain Tab does; Shift+Tab does not,
+ * because it is the only way focus can leave the bar and reach the theme toggle. Reverse cycling
+ * gives way to focus movement, an accepted behaviour change (prd-v1 §2 / Q2).
+ */
+describe("completesOn", () => {
+  it.each([
+    ["Tab", false, true],
+    ["Tab", true, false],
+    ["ArrowUp", false, false],
+    ["ArrowUp", true, false],
+    ["ArrowDown", false, false],
+    ["Enter", false, false],
+    [" ", false, false],
+    ["a", false, false],
+    ["a", true, false],
+  ])("%s with shiftKey %s completes: %s", (key, shiftKey, expected) => {
+    expect(completesOn(key, shiftKey)).toBe(expected);
+  });
+
+  it("keeps plain Tab, so forward completion never regresses", () => {
+    expect(completesOn("Tab", false)).toBe(true);
+  });
+
+  it("releases Shift+Tab to the browser, so focus can reach the theme toggle", () => {
+    expect(completesOn("Tab", true)).toBe(false);
   });
 });
