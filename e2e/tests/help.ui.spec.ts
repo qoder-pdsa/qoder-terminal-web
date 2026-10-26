@@ -164,12 +164,14 @@ test("HELP-11 an example click with a free slot opens the business panel and kee
 
 test("HELP-12 an example click really runs the command through a mocked quote", async ({ page }) => {
   await seenHelp(page);
-  // Contract-shaped Quote (decimal strings); CORS header because the app origin differs.
+  // Contract-shaped Quote and Intraday (decimal strings); QuotePanel loads both in one
+  // Promise.all, so both endpoints need a mock. CORS header because the app origin differs.
+  const cors = { "access-control-allow-origin": new URL(page.url()).origin };
   await page.route("**/v1/quotes/700.HK", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      headers: { "access-control-allow-origin": new URL(page.url()).origin },
+      headers: cors,
       body: JSON.stringify({
         symbol: "700.HK",
         price: "438.4000",
@@ -183,6 +185,14 @@ test("HELP-12 an example click really runs the command through a mocked quote", 
         currency: "HKD",
         asOf: "2026-10-26T02:00:00Z",
       }),
+    }),
+  );
+  await page.route("**/v1/intraday/700.HK", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      headers: cors,
+      body: JSON.stringify({ symbol: "700.HK", currency: "HKD", prevClose: "425.8000", points: [] }),
     }),
   );
   await page.goto("./");

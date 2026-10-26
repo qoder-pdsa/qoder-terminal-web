@@ -45,10 +45,11 @@ export function App() {
     if (result.outcome === "opened") setPanels(result.panels);
   }, [panels]);
 
-  // First visit only: open the help panel once and mark the browser. The marker is written before
-  // any panel opens, so StrictMode's second mount sees it and a double effect stays idempotent.
+  // First visit only: open the help panel once and mark the browser. The storage thunk is read
+  // inside firstVisitHelp's guard, so a browser that blocks storage skips silently; the marker is
+  // written before any panel opens, so StrictMode's second mount sees it and stays idempotent.
   useEffect(() => {
-    if (firstVisitHelp(window.localStorage) !== "auto-open") return;
+    if (firstVisitHelp(() => window.localStorage) !== "auto-open") return;
     setPanels((prev) => openKeeping(prev, { id: newPanelId(), command: HELP_COMMAND }, isHelpPanel).panels);
   }, []);
 
