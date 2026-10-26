@@ -3,7 +3,9 @@ import type { HistoryRange } from "./api/data";
 import { complete, completionCandidates } from "./commands/complete";
 import { back, current, EMPTY_HISTORY, forward, push, type HistoryState } from "./commands/history";
 import { parseCommand } from "./commands/parse";
-import { closePanel, openPanel, toSlots, type OpenPanel } from "./layout/slots";
+import { closePanel, GRID_SLOTS, openKeeping, openPanel, toSlots, type OpenPanel } from "./layout/slots";
+import { TOPBAR_HINT } from "./panels/helpContent";
+import { firstVisitHelp } from "./panels/helpState";
 import { panelTitle, renderPanel } from "./panels/registry";
 import { panelRange, selectPanelRange } from "./panels/rangeState";
 
@@ -13,6 +15,11 @@ interface CompletionSession {
   readonly result: string;
   readonly cycle: number;
 }
+
+const HELP_COMMAND = { kind: "function", code: "HELP" } as const;
+const GRID_FULL_MESSAGE = "Grid is full — close a panel first";
+const newPanelId = () => Date.now() + Math.random();
+const isHelpPanel = (panel: OpenPanel) => panel.command.kind === "function" && panel.command.code === "HELP";
 
 export function App() {
   const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
@@ -24,19 +31,73 @@ export function App() {
   const sessionRef = useRef<CompletionSession | null>(null);
   const caretToEnd = useRef(false);
 
-  const run = useCallback((raw: string) => {
-    const command = parseCommand(raw);
-    if (command.kind === "invalid") {
-      setMessage(`${command.reason}: ${command.input}`);
+  /**
+   * Open the help panel without touching open panels: reuse the existing one, refuse with a
+   * prompt when the grid is full, otherwise take a free slot.
+   */
+  const openHelp = useCallback(() => {
+    const result = openKeeping(panels, { id: newPanelId(), command: HELP_COMMAND }, isHelpPanel);
+    if (result.outcome === "grid-full") {
+      setMessage(GRID_FULL_MESSAGE);
       return;
     }
     setMessage(null);
-    if (command.kind === "function" && command.code === "CLEAR") {
-      setPanels([]);
-      return;
-    }
-    setPanels((prev) => openPanel(prev, { id: Date.now() + Math.random(), command }));
+    if (result.outcome === "opened") setPanels(result.panels);
+  }, [panels]);
+
+  // First visit only: open the help panel once and mark the browser. The marker is written before
+  // any panel opens, so StrictMode's second mount sees it and a double effect stays idempotent.
+  useEffect(() => {
+    if (firstVisitHelp(window.localStorage) !== "auto-open") return;
+    setPanels((prev) => openKeeping(prev, { id: newPanelId(), command: HELP_COMMAND }, isHelpPanel).panels);
   }, []);
+
+  const run = useCallback(
+    (raw: string) => {
+      const command = parseCommand(raw);
+      if (command.kind === "invalid") {
+        setMessage(`${command.reason}: ${command.input}`);
+        return;
+      }
+      setMessage(null);
+      if (command.kind === "function" && command.code === "CLEAR") {
+        setPanels([]);
+        return;
+      }
+      if (command.kind === "function" && command.code === "HELP") {
+        openHelp();
+        return;
+      }
+      setPanels((prev) => openPanel(prev, { id: newPanelId(), command }));
+    },
+    [openHelp],
+  );
+
+  /** Examples inside the help panel run like typed commands, but never evict an open panel. */
+  const runExample = useCallback(
+    (raw: string) => {
+      const command = parseCommand(raw);
+      if (command.kind === "invalid") {
+        setMessage(`${command.reason}: ${command.input}`);
+        return;
+      }
+      if (command.kind === "function" && command.code === "HELP") {
+        openHelp();
+        return;
+      }
+      if (command.kind === "function" && command.code === "CLEAR") {
+        setPanels([]);
+        return;
+      }
+      if (panels.length >= GRID_SLOTS) {
+        setMessage(GRID_FULL_MESSAGE);
+        return;
+      }
+      setMessage(null);
+      setPanels((prev) => openPanel(prev, { id: newPanelId(), command }));
+    },
+    [panels, openHelp],
+  );
 
   const onSelectRange = useCallback((id: number, range: HistoryRange) => {
     setPanels((prev) => prev.map((panel) => (panel.id === id ? selectPanelRange(panel, range) : panel)));
@@ -94,7 +155,7 @@ export function App() {
     <div className="terminal">
       <header className="topbar">
         <span className="brand">QODER TERMINAL</span>
-        <span className="muted">Q · GP · N · W · CF · CLEAR · ASK</span>
+        <span className="muted">{TOPBAR_HINT}</span>
       </header>
       <form onSubmit={onSubmit} className="command-bar">
         <span className="prompt">&gt;</span>
@@ -108,6 +169,15 @@ export function App() {
           placeholder="700 Q   |   9988.HK GP   |   700 CF   |   W   |   ASK compare Tencent and Alibaba recently"
           autoFocus
         />
+        <button
+          type="button"
+          className="help-button"
+          data-testid="help-button"
+          aria-label="Open help"
+          onClick={openHelp}
+        >
+          ?
+        </button>
       </form>
       {message && <div className="down message" data-testid="command-error">{message}</div>}
       <main className="grid">
@@ -135,7 +205,11 @@ export function App() {
                   ×
                 </button>
               </div>
-              {renderPanel(p.command, { run, panel: p, selectRange: (range) => onSelectRange(p.id, range) })}
+              {renderPanel(p.command, {
+                run: isHelpPanel(p) ? runExample : run,
+                panel: p,
+                selectRange: (range) => onSelectRange(p.id, range),
+              })}
             </section>
           );
         })}

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { panelTitle } from "./registry";
+import type { ReactElement } from "react";
+import { HelpPanel } from "./HelpPanel";
+import { panelTitle, renderPanel } from "./registry";
 
 // BL-02 changes the GP heading from "700.HK GP" to "700.HK GP 3M". The Q / N / ASK cases are
 // unchanged from the pre-BL-02 characterization committed at db9d8af and guard the rest of the
@@ -35,5 +37,23 @@ describe("panelTitle", () => {
 
   it("renders ASK for ask commands", () => {
     expect(panelTitle({ kind: "ask", question: "compare Tencent and Alibaba" })).toBe("ASK");
+  });
+
+  // DEMO-13: HELP is a symbol-less code, so its heading is the bare code like N / W.
+  it("renders HELP for the help panel", () => {
+    expect(panelTitle({ kind: "function", code: "HELP" })).toBe("HELP");
+  });
+});
+
+// DEMO-13: the registry wires HELP to the help panel like every other function code.
+describe("renderPanel HELP (DEMO-13)", () => {
+  it("renders the HelpPanel for a HELP command", () => {
+    const command = { kind: "function" as const, code: "HELP" as const };
+    const element = renderPanel(command, {
+      run: () => {},
+      panel: { id: 1, command },
+      selectRange: () => {},
+    }) as ReactElement;
+    expect(element.type).toBe(HelpPanel);
   });
 });

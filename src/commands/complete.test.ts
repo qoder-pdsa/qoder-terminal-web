@@ -3,7 +3,7 @@ import { complete, completionCandidates } from "./complete";
 import { FUNCTION_CODES } from "./parse";
 
 /** The codes that stand alone, i.e. the first-token candidates that are not symbols. */
-const STANDALONE = ["N", "W", "CLEAR"];
+const STANDALONE = ["N", "W", "HELP", "CLEAR"];
 /** The codes that follow a symbol; ASK leads a line and CLEAR takes no symbol. */
 const AFTER_SYMBOL = ["Q", "GP", "N", "W", "CF"];
 
@@ -118,6 +118,7 @@ describe("completionCandidates", () => {
     expect(candidates).not.toContain("700.HK");
     expect(candidates).not.toContain("ASK");
     expect(candidates).not.toContain("CLEAR");
+    expect(candidates).not.toContain("HELP");
   });
 
   it("offers no candidates for the range token of a GP command", () => {
@@ -232,5 +233,28 @@ describe("the space after a completed symbol", () => {
 
   it("treats a completed symbol plus its space as ready for the code, not as a new cycle", () => {
     expect(completionCandidates("9988.HK ", ["9988 GP"])).toEqual(AFTER_SYMBOL);
+  });
+});
+
+// DEMO-13: HELP completes as a first token exactly like CLEAR, and never after a symbol, because
+// `700 HELP` can never parse. A standalone code completes without a trailing space.
+describe("HELP completion (DEMO-13)", () => {
+  it("offers HELP among the first-token codes", () => {
+    expect(completionCandidates("H", [])).toContain("HELP");
+    expect(tab("HE", ["700 Q"]).matches).toEqual(["HELP"]);
+  });
+
+  it("never offers HELP after a symbol", () => {
+    expect(completionCandidates("700 ", ["700 Q"])).not.toContain("HELP");
+    expect(completionCandidates("700.HK ", ["700 Q"])).not.toContain("HELP");
+  });
+
+  it.each(["H", "HE", "h", "he"])("completes %j to HELP with no trailing space", (input) => {
+    expect(tab(input, ["700 Q"]).text).toBe("HELP");
+    expect(tab(input, ["700 Q"]).matches).toEqual(["HELP"]);
+  });
+
+  it("cycles backward onto HELP with Shift+Tab when it is the only match", () => {
+    expect(tab("H", ["700 Q"], -1).text).toBe("HELP");
   });
 });

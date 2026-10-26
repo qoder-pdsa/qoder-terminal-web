@@ -101,3 +101,16 @@ a { color: var(--tool); }
 /* Q panel: the quote head stays compact so the intraday line gets the rest of the cell. */
 .quote-head { margin-bottom: 6px; }
 .chart-intraday { height: clamp(140px, 26vh, 320px); }
+/* ? button at the command bar's right end: same transparent/amber language as the toolbar buttons. */
+.help-button { background: transparent; border: 1px solid var(--amber); color: var(--amber); font: inherit; font-size: 14px; line-height: 1; padding: 2px 8px; cursor: pointer; }
+.help-button:hover { background: var(--amber); color: #000; }
+/* HELP panel: four English sections; section heads reuse the amber small-caps look of panel titles. */
+.help-section { margin: 10px 0 4px; font-size: 11px; letter-spacing: 0.1em; color: var(--amber); }
+.help-section:first-child { margin-top: 0; }
+.help-functions { width: 100%; border-collapse: collapse; }
+.help-functions td { padding: 2px 4px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.help-functions td.help-code { color: var(--amber); white-space: nowrap; }
+.help-lines { margin: 0 0 2px; font-size: 12px; }
+.help-examples { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.help-examples button { background: transparent; border: 1px solid var(--amber); color: var(--amber); font: inherit; font-size: 12px; padding: 2px 8px; cursor: pointer; }
+.help-examples button:hover { background: var(--amber); color: #000; }

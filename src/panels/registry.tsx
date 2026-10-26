@@ -5,6 +5,7 @@ import type { OpenPanel } from "../layout/slots";
 import { AskPanel } from "./AskPanel";
 import { CapitalFlowPanel } from "./CapitalFlowPanel";
 import { GraphPanel } from "./GraphPanel";
+import { HelpPanel } from "./HelpPanel";
 import { NewsPanel } from "./NewsPanel";
 import { QuotePanel } from "./QuotePanel";
 import { panelRange } from "./rangeState";
@@ -42,5 +43,7 @@ export function renderPanel(cmd: RunnableCommand, ctx: PanelContext): ReactNode 
       return <WatchlistPanel onOpen={ctx.run} />;
     case "CF":
       return <CapitalFlowPanel symbol={cmd.symbol ?? ""} />;
+    case "HELP":
+      return <HelpPanel {...ctx} />;
   }
 }

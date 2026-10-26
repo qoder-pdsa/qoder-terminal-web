@@ -33,9 +33,12 @@ describe("parseCommand", () => {
     expect(parseCommand(input)).toEqual(expected);
   });
 
-  it.each(["", "ASK", "GP", "CF", "700 CF 3M", "700 XYZ", "700 Q EXTRA", "TENCENT Q"])("rejects %j", (input) => {
-    expect(parseCommand(input).kind).toBe("invalid");
-  });
+  it.each(["", "ASK", "GP", "CF", "700 CF 3M", "700 XYZ", "700 Q EXTRA", "TENCENT Q", "700 HELP"])(
+    "rejects %j",
+    (input) => {
+      expect(parseCommand(input).kind).toBe("invalid");
+    },
+  );
 });
 
 // BL-02 adds a range argument to GP. Compared with the pre-BL-02 characterization committed at
@@ -109,6 +112,29 @@ describe("parseCommand CLEAR (DEMO-5)", () => {
       kind: "invalid",
       input: "700 CLEAR",
       reason: "CLEAR takes no symbol, e.g. CLEAR",
+    });
+  });
+});
+
+// DEMO-13 adds HELP: a symbol-less function code like CLEAR that opens the quick help panel.
+describe("parseCommand HELP (DEMO-13)", () => {
+  it.each([
+    ["HELP", { kind: "function", code: "HELP" }],
+    ["help", { kind: "function", code: "HELP" }],
+    ["  help  ", { kind: "function", code: "HELP" }],
+  ])("parses %j as a symbol-less function code", (input, expected) => {
+    expect(parseCommand(input)).toEqual(expected);
+  });
+
+  it.each(["700 HELP", "700 help", "0700.HK HELP", "AAPL.US HELP"])("rejects %j because HELP takes no symbol", (input) => {
+    expect(parseCommand(input).kind).toBe("invalid");
+  });
+
+  it("names the code in the rejection reason", () => {
+    expect(parseCommand("700 HELP")).toEqual({
+      kind: "invalid",
+      input: "700 HELP",
+      reason: "HELP takes no symbol, e.g. HELP",
     });
   });
 });

@@ -259,6 +259,9 @@ test("Tab with nothing to complete leaves the input and keeps the focus", async 
 });
 
 test("layout is a fixed 2x2 grid with empty slots", async ({ page }) => {
+  // DEMO-13 opens the help panel once on a first visit; a fresh context is a first visit, so this
+  // grid-layout assertion loads as a returning visit. The assertions below are unchanged.
+  await page.addInitScript((key) => window.localStorage.setItem(key, "1"), "qoder-terminal:help-seen");
   await page.goto("./");
   await expect(page.getByTestId("empty-slot")).toHaveCount(4);
   await run(page, "700 Q");

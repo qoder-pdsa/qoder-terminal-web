@@ -11,8 +11,8 @@ export interface Completion {
   readonly matches: readonly string[];
 }
 
-// ASK leads a line and CLEAR takes no symbol, so neither can complete a second token.
-const AFTER_SYMBOL = FUNCTION_CODES.filter((code) => code !== "ASK" && code !== "CLEAR");
+// ASK leads a line, CLEAR takes no symbol and HELP rejects one, so none can complete a second token.
+const AFTER_SYMBOL = FUNCTION_CODES.filter((code) => code !== "ASK" && code !== "CLEAR" && code !== "HELP");
 // A first token is a symbol or a code that stands alone, never one that requires a symbol.
 const STANDALONE = FUNCTION_CODES.filter((code) => code !== "ASK" && !REQUIRES_SYMBOL.has(code));
 
