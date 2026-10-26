@@ -138,6 +138,76 @@ describe("synthetic analyst stream", () => {
   });
 });
 
+// B4 (CR round 5): the percent must be consistent with the same object's change/open, not just
+// well-formatted; hundredths(change/open * 100) within one rounding unit, and bounded by the
+// generator's own domain (|change| <= 2.0000 over open >= 100.0000 => |percent| <= 2.00).
+describe("synthetic percent coherence", () => {
+  const symbols = ["700.HK", "9988.HK", "3690.HK", "AAPL.US", "MSFT.US", "600519.SH", "000001.SZ"];
+
+  it("derives changePercent from change and open within one rounding unit", () => {
+    for (const symbol of symbols) {
+      const quote = syntheticQuote(symbol);
+      // scaled() is 4dp; the percent carries 2dp, so its hundredths are percent4 / 100 exactly.
+      // hundredths = round(change4 * 10_000 / open4) => |hundredths * open4 - change4 * 10_000| <= open4 / 2.
+      const hundredths = scaled(quote.changePercent) / 100n;
+      const drift = hundredths * scaled(quote.open) - scaled(quote.change) * 10_000n;
+      const abs = drift < 0n ? -drift : drift;
+      expect(abs, symbol).toBeLessThanOrEqual(scaled(quote.open) / 2n);
+    }
+  });
+
+  it("keeps the percent inside the generator's magnitude domain", () => {
+    for (const symbol of symbols) {
+      const percent4 = scaled(syntheticQuote(symbol).changePercent);
+      const abs = percent4 < 0n ? -percent4 : percent4;
+      expect(abs, symbol).toBeLessThanOrEqual(20_000n); // |change| <= 2.0000 over open >= 100.0000
+    }
+  });
+});
+
+describe("synthetic series coherence", () => {
+  it("keeps the quote's session range containing its open and last price", () => {
+    for (const symbol of ["700.HK", "9988.HK", "3690.HK", "AAPL.US", "MSFT.US"]) {
+      const quote = syntheticQuote(symbol);
+      const [open, high, low, price] = [
+        scaled(quote.open),
+        scaled(quote.high),
+        scaled(quote.low),
+        scaled(quote.price),
+      ];
+      expect(high, symbol).toBeGreaterThanOrEqual(open > price ? open : price);
+      expect(low, symbol).toBeLessThanOrEqual(open < price ? open : price);
+    }
+  });
+
+  it("keeps every candle's range containing its open and close", () => {
+    for (const symbol of ["700.HK", "9988.HK", "AAPL.US"]) {
+      for (const range of ["1M", "3M", "6M", "1Y"] as const) {
+        for (const candle of syntheticHistory(symbol, range)) {
+          const [open, high, low, close] = [
+            scaled(candle.open),
+            scaled(candle.high),
+            scaled(candle.low),
+            scaled(candle.close),
+          ];
+          expect(high, `${symbol} ${range} ${candle.time}`).toBeGreaterThanOrEqual(open > close ? open : close);
+          expect(low, `${symbol} ${range} ${candle.time}`).toBeLessThanOrEqual(open < close ? open : close);
+        }
+      }
+    }
+  });
+
+  it("ends the intraday line and the daily series at the quote's price", () => {
+    for (const symbol of ["700.HK", "9988.HK", "AAPL.US"]) {
+      const price = syntheticQuote(symbol).price;
+      const intraday = syntheticIntraday(symbol);
+      expect(intraday.points[intraday.points.length - 1].price).toBe(price);
+      const history = syntheticHistory(symbol, "3M");
+      expect(history[history.length - 1].close).toBe(price);
+    }
+  });
+});
+
 describe("the synthetic gate", () => {
   afterEach(() => {
     vi.unstubAllEnvs();

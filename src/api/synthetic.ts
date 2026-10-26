@@ -69,16 +69,22 @@ export function syntheticQuote(symbol: string): Quote {
   const price = base + change;
   const spread = (seedOf(`${symbol}:spread`) % 500) + 50;
   const volume = 1_000_000 + (seedOf(`${symbol}:volume`) % 12_000_000);
-  // percent = change / base at 2dp, rounded with integer arithmetic only.
-  const hundredths = Number((BigInt(change) * 1_000_000n + BigInt(base) / 2n) / BigInt(base));
+  // percent = change / open at 2dp; BigInt division truncates toward zero, so round half away
+  // from zero explicitly to keep negative changes within half a unit.
+  const num = BigInt(change) * 10_000n;
+  const baseBig = BigInt(base);
+  const hundredths = Number(num >= 0n ? (num + baseBig / 2n) / baseBig : (num - baseBig / 2n) / baseBig);
+  // The session range must contain both the open and the last price, like the data service mock.
+  const top = Math.max(base, price);
+  const bottom = Math.min(base, price);
   return {
     symbol,
     price: d4(price),
     change: sd4(change),
     changePercent: d2(hundredths),
     open: d4(base),
-    high: d4(price + spread),
-    low: d4(price - spread),
+    high: d4(top + spread),
+    low: d4(bottom - spread),
     volume,
     turnover: d4(price * volume),
     currency: currencyOf(symbol),
@@ -88,11 +94,24 @@ export function syntheticQuote(symbol: string): Quote {
 
 export function syntheticIntraday(symbol: string): Intraday {
   const base = baseOf(symbol);
+  const price = syntheticQuote(symbol).price;
   let walk = 0;
-  const points = Array.from({ length: 30 }, (_, i) => {
+  const walks = Array.from({ length: 30 }, (_, i) => {
     walk += ((seedOf(`${symbol}:m${i}`) % 2_000) - 1_000) | 0;
-    const price = base + walk;
-    return { time: minuteAt(SESSION_ANCHOR_MS, i), price: d4(price), avgPrice: d4(base + (walk >> 1)), volume: 10_000 + (seedOf(`${symbol}:v${i}`) % 90_000) };
+    return walk;
+  });
+  // Shift the walk so the line ends exactly at the quote's price; one preview, one last price.
+  const offset = Number(price.replace(".", "")) - (base + walks[walks.length - 1]);
+  let sum = 0;
+  const points = walks.map((w, i) => {
+    const point = base + w + offset;
+    sum += point;
+    return {
+      time: minuteAt(SESSION_ANCHOR_MS, i),
+      price: d4(point),
+      avgPrice: d4(Math.trunc(sum / (i + 1))),
+      volume: 10_000 + (seedOf(`${symbol}:v${i}`) % 90_000),
+    };
   });
   return { symbol, currency: currencyOf(symbol), prevClose: d4(base), points };
 }
@@ -100,11 +119,17 @@ export function syntheticIntraday(symbol: string): Intraday {
 export function syntheticHistory(symbol: string, range: HistoryRange): Candle[] {
   const days = range === "1M" ? 22 : range === "3M" ? 66 : range === "6M" ? 132 : 252;
   const base = baseOf(symbol);
+  const price = syntheticQuote(symbol).price;
   let walk = 0;
-  return Array.from({ length: days }, (_, i) => {
+  const walks = Array.from({ length: days }, (_, i) => {
     walk += ((seedOf(`${symbol}:d${i}`) % 4_000) - 2_000) | 0;
-    const close = base + walk;
-    const open = close - ((seedOf(`${symbol}:o${i}`) % 2_000) - 1_000);
+    return walk;
+  });
+  // Shift the series so the newest close equals the quote's price.
+  const offset = Number(price.replace(".", "")) - (base + walks[days - 1]);
+  return walks.map((w, i) => {
+    const close = base + w + offset;
+    const open = i === 0 ? close - ((seedOf(`${symbol}:o${i}`) % 2_000) - 1_000) : base + walks[i - 1] + offset;
     const high = Math.max(open, close) + (seedOf(`${symbol}:h${i}`) % 800);
     const low = Math.min(open, close) - (seedOf(`${symbol}:l${i}`) % 800);
     return {
