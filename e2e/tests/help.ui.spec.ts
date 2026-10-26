@@ -218,7 +218,8 @@ test("HELP-13 closing HELP leaves the business panels untouched and it reopens",
   await expect(helpPanels(page)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "700.HK Q" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "9988.HK Q" })).toBeVisible();
-  await expect(page.getByTestId("empty-slot")).toHaveCount(1);
+  // Closing HELP leaves the two business panels, so two of the four grid slots stay empty.
+  await expect(page.getByTestId("empty-slot")).toHaveCount(2);
 
   await run(page, "HELP");
   await expect(helpPanels(page)).toHaveCount(1);
