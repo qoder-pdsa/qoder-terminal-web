@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { urls } from "../playwright.config";
 
 // DEMO-13 quick help. Every assertion uses data-independent signals (headings, section and slot
 // counts, the message line); only HELP-12 mocks one contract-shaped quote through page.route.
@@ -165,8 +166,9 @@ test("HELP-11 an example click with a free slot opens the business panel and kee
 test("HELP-12 an example click really runs the command through a mocked quote", async ({ page }) => {
   await seenHelp(page);
   // Contract-shaped Quote and Intraday (decimal strings); QuotePanel loads both in one
-  // Promise.all, so both endpoints need a mock. CORS header because the app origin differs.
-  const cors = { "access-control-allow-origin": new URL(page.url()).origin };
+  // Promise.all, so both endpoints need a mock. CORS header because the app origin differs;
+  // urls.webOrigin is navigation-order independent (page.url() is about:blank until goto).
+  const cors = { "access-control-allow-origin": urls.webOrigin };
   await page.route("**/v1/quotes/700.HK", (route) =>
     route.fulfill({
       status: 200,
