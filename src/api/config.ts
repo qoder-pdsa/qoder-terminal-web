@@ -5,3 +5,10 @@ export function resolveBaseUrl(value: string | undefined, fallback: string): str
 
 export const DATA_URL: string = resolveBaseUrl(import.meta.env.VITE_DATA_URL, "http://localhost:8081");
 export const ANALYST_URL: string = resolveBaseUrl(import.meta.env.VITE_ANALYST_URL, "http://localhost:8082");
+
+/**
+ * Synthetic preview mode: builds with VITE_SYNTHETIC=1 serve contract-shaped synthetic data
+ * in-process, so a plain browser on a temporary preview never contacts the real business APIs.
+ * The flag is a build-time constant, so default builds keep the real fetch path unchanged.
+ */
+export const SYNTHETIC: boolean = import.meta.env.VITE_SYNTHETIC === "1";

@@ -1,4 +1,5 @@
-import { ANALYST_URL } from "./config";
+import { ANALYST_URL, SYNTHETIC } from "./config";
+import { syntheticAskEvents } from "./synthetic";
 
 /** Mirrors qoder-terminal-analyst/api/agent-event.schema.json. */
 export type AgentEvent =
@@ -21,6 +22,10 @@ export function splitSse(buffer: string): { events: AgentEvent[]; rest: string }
 }
 
 export async function* ask(question: string, signal?: AbortSignal): AsyncGenerator<AgentEvent> {
+  if (SYNTHETIC) {
+    yield* syntheticAskEvents(question);
+    return;
+  }
   const resp = await fetch(`${ANALYST_URL}/v1/ask`, {
     method: "POST",
     headers: { "content-type": "application/json" },

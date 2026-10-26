@@ -1,4 +1,13 @@
-import { DATA_URL } from "./config";
+import { DATA_URL, SYNTHETIC } from "./config";
+import {
+  syntheticCapitalFlow,
+  syntheticHistory,
+  syntheticIndicator,
+  syntheticIntraday,
+  syntheticNews,
+  syntheticQuote,
+  syntheticWatchlists,
+} from "./synthetic";
 
 /** Mirrors Quote in qoder-terminal-data/api/openapi.yaml; numbers are decimal strings. */
 export interface Quote {
@@ -126,6 +135,7 @@ async function apiError(resp: Response): Promise<ApiError> {
 }
 
 export async function fetchQuote(symbol: string, signal?: AbortSignal): Promise<Quote> {
+  if (SYNTHETIC) return syntheticQuote(symbol);
   const resp = await fetch(`${DATA_URL}/v1/quotes/${encodeURIComponent(symbol)}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as Quote;
@@ -136,6 +146,7 @@ export async function fetchHistory(
   range: HistoryRange,
   signal?: AbortSignal,
 ): Promise<Candle[]> {
+  if (SYNTHETIC) return syntheticHistory(symbol, range);
   const query = new URLSearchParams({ range });
   const resp = await fetch(`${DATA_URL}/v1/history/${encodeURIComponent(symbol)}?${query}`, { signal });
   if (!resp.ok) throw await apiError(resp);
@@ -150,12 +161,14 @@ export async function fetchIndicator(
   signal?: AbortSignal,
 ): Promise<IndicatorSeries> {
   const query = new URLSearchParams({ kind, window: String(window), range });
+  if (SYNTHETIC) return syntheticIndicator(symbol, kind, window, range);
   const resp = await fetch(`${DATA_URL}/v1/indicators/${encodeURIComponent(symbol)}?${query}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as IndicatorSeries;
 }
 
 export async function fetchNews(symbol: string, limit: number, signal?: AbortSignal): Promise<NewsItem[]> {
+  if (SYNTHETIC) return syntheticNews(symbol, limit);
   const query = new URLSearchParams({ symbol, limit: String(limit) });
   const resp = await fetch(`${DATA_URL}/v1/news?${query}`, { signal });
   if (!resp.ok) throw await apiError(resp);
@@ -164,6 +177,7 @@ export async function fetchNews(symbol: string, limit: number, signal?: AbortSig
 
 /** One request for a whole watchlist group; the data service makes a single upstream call. */
 export async function fetchQuotes(symbols: readonly string[], signal?: AbortSignal): Promise<Quote[]> {
+  if (SYNTHETIC) return symbols.slice(0, MAX_BATCH_SYMBOLS).map((symbol) => syntheticQuote(symbol));
   const query = new URLSearchParams({ symbols: symbols.slice(0, MAX_BATCH_SYMBOLS).join(",") });
   const resp = await fetch(`${DATA_URL}/v1/quotes?${query}`, { signal });
   if (!resp.ok) throw await apiError(resp);
@@ -171,18 +185,21 @@ export async function fetchQuotes(symbols: readonly string[], signal?: AbortSign
 }
 
 export async function fetchWatchlists(signal?: AbortSignal): Promise<Watchlist[]> {
+  if (SYNTHETIC) return syntheticWatchlists();
   const resp = await fetch(`${DATA_URL}/v1/watchlists`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as Watchlist[];
 }
 
 export async function fetchCapitalFlow(symbol: string, signal?: AbortSignal): Promise<CapitalFlow> {
+  if (SYNTHETIC) return syntheticCapitalFlow(symbol);
   const resp = await fetch(`${DATA_URL}/v1/capital-flow/${encodeURIComponent(symbol)}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as CapitalFlow;
 }
 
 export async function fetchIntraday(symbol: string, signal?: AbortSignal): Promise<Intraday> {
+  if (SYNTHETIC) return syntheticIntraday(symbol);
   const resp = await fetch(`${DATA_URL}/v1/intraday/${encodeURIComponent(symbol)}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as Intraday;

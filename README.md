@@ -49,6 +49,14 @@ the space that precedes the function code already typed) or a function code (`70
 
 Environment variables: `VITE_DATA_URL` (default `http://localhost:8081`) and `VITE_ANALYST_URL` (default `http://localhost:8082`).
 
+### Synthetic preview builds
+
+`VITE_SYNTHETIC=1 npm run build` (or `npm run dev`) bakes a deterministic, contract-shaped data
+source into the bundle: quotes, charts, news, watchlists, capital flow and the ASK stream are
+generated in-process, so a plain browser on a temporary preview shows a live-looking terminal with
+**zero** requests to the data/analyst services and no WebSockets. Without the flag the build is
+unchanged and talks to the real contract endpoints. Amounts stay decimal strings end to end.
+
 ## Docs
 - [Production deployment](docs/deployment.md)
 - [Architecture](docs/architecture.md) · [AutoWonder workflow](docs/autowonder-workflow.md) · [Demo script](docs/demo-script.md) · [Backlog](backlog/README.md)
