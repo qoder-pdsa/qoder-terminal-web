@@ -293,6 +293,35 @@ test("× closes one panel and CLEAR empties the grid", async ({ page }) => {
   await expect(page.getByTestId("quote-panel")).toHaveCount(0);
 });
 
+test("the top-bar Clear all button empties every panel in one click", async ({ page }) => {
+  await page.goto("./");
+  const clearAll = page.getByTestId("clear-all");
+  // An empty grid has nothing to clear, so the button says so instead of doing nothing silently.
+  await expect(clearAll).toBeDisabled();
+  await expect(page.getByTestId("empty-slot")).toHaveCount(4);
+
+  await run(page, "700 Q");
+  await run(page, "9988 Q");
+  await run(page, "700 GP");
+  await expect(page.getByTestId("empty-slot")).toHaveCount(1);
+  await expect(page.getByTestId("close-panel")).toHaveCount(3);
+  await expect(clearAll).toBeEnabled();
+
+  // An invalid command leaves the panels open and shows the error line, which Clear all also resets.
+  await run(page, "GP");
+  await expect(page.getByTestId("command-error")).toBeVisible();
+
+  await clearAll.click();
+  await expect(page.getByTestId("empty-slot")).toHaveCount(4);
+  await expect(page.getByTestId("close-panel")).toHaveCount(0);
+  await expect(page.getByTestId("command-error")).toHaveCount(0);
+  await expect(clearAll).toBeDisabled();
+
+  // The grid is usable again straight after clearing.
+  await run(page, "700 Q");
+  await expect(page.getByTestId("quote-panel")).toHaveCount(1);
+});
+
 test("N lists a symbol's news with outbound links", async ({ page }) => {
   await page.goto("./");
   await run(page, "700 N");

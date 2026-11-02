@@ -19,6 +19,11 @@ body { margin: 0; background: var(--bg); color: var(--text); }
 .terminal { min-height: 100vh; display: flex; flex-direction: column; }
 .topbar { display: flex; justify-content: space-between; padding: 6px 12px; background: var(--amber); color: #000; font-weight: 700; }
 .topbar .muted { color: #000; opacity: 0.7; }
+/* Top-bar right-hand group: the function-code hint plus the Clear all button. */
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.clear-all { background: transparent; border: 1px solid #000; color: #000; font: inherit; font-size: 11px; letter-spacing: 0.05em; line-height: 1; padding: 2px 6px; cursor: pointer; }
+.clear-all:hover:not(:disabled) { background: #000; color: var(--amber); }
+.clear-all:disabled { opacity: 0.4; cursor: default; }
 .command-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
 .command-bar input { flex: 1; background: transparent; border: 0; outline: 0; color: var(--amber); font: inherit; font-size: 16px; text-transform: none; }
 .prompt { color: var(--amber); }

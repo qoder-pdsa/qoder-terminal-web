@@ -23,6 +23,11 @@ export function closePanel(prev: readonly OpenPanel[], id: number): OpenPanel[] 
   return prev.filter((panel) => panel.id !== id);
 }
 
+/** Whether the whole grid can be cleared; an empty grid has nothing to clear. */
+export function canClearAll(panels: readonly OpenPanel[]): boolean {
+  return panels.length > 0;
+}
+
 /** Map the panel list onto the fixed slots; unused slots are null. */
 export function toSlots(panels: readonly OpenPanel[]): (OpenPanel | null)[] {
   return Array.from({ length: GRID_SLOTS }, (_, i) => panels[i] ?? null);

@@ -40,7 +40,7 @@ docker compose up --build                     # includes PostgreSQL and user (ru
 | `N` / `700 N` | News for one symbol, or the first watchlist group merged and de-duplicated | ✅ |
 | `W` | Watchlist groups (the Longbridge account's; mock has one demo group) with prices polled every 5 s; click a row for `Q`; click the `PRICE` / `CHANGE` header to sort (first click ▼, second ▲) | ✅ |
 | `700 CF` | Intraday capital flow: net inflow per minute + large / medium / small order distribution | ✅ |
-| `CLEAR` | Empties the grid; every open panel header also has a `×` that closes just that panel | ✅ |
+| `CLEAR` | Empties the grid; every open panel header also has a `×` that closes just that panel, and the top bar has a `CLEAR ALL` button that empties the grid in one click (disabled while nothing is open) | ✅ |
 
 `Tab` completes the token under the cursor — a symbol used earlier in the session (`70` → `700.HK `, with
 the space that precedes the function code already typed) or a function code (`700 G` → `700 GP`). Repeated

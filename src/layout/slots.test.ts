@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closePanel, GRID_SLOTS, openPanel, toSlots } from "./slots";
+import { canClearAll, closePanel, GRID_SLOTS, openPanel, toSlots } from "./slots";
 
 const cmd = (code: "Q" | "N") => ({ kind: "function" as const, code });
 
@@ -42,6 +42,26 @@ describe("closePanel", () => {
   it("keeps every panel when the id is not open", () => {
     const prev = [{ id: 1, command: cmd("Q") }];
     expect(closePanel(prev, 99).map((p) => p.id)).toEqual([1]);
+  });
+});
+
+describe("canClearAll", () => {
+  it("is false on an empty grid, so the top-bar Clear all button stays disabled", () => {
+    expect(canClearAll([])).toBe(false);
+  });
+
+  it("is true as soon as one panel is open", () => {
+    expect(canClearAll([{ id: 1, command: cmd("Q") }])).toBe(true);
+  });
+
+  it("is true on a full grid", () => {
+    expect(canClearAll([4, 3, 2, 1].map((id) => ({ id, command: cmd("N") })))).toBe(true);
+  });
+
+  it("does not mutate the panel list it reads", () => {
+    const prev = [1, 2].map((id) => ({ id, command: cmd("Q") }));
+    canClearAll(prev);
+    expect(prev.map((p) => p.id)).toEqual([1, 2]);
   });
 });
 

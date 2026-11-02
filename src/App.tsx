@@ -3,7 +3,7 @@ import type { HistoryRange } from "./api/data";
 import { complete, completionCandidates } from "./commands/complete";
 import { back, current, EMPTY_HISTORY, forward, push, type HistoryState } from "./commands/history";
 import { parseCommand } from "./commands/parse";
-import { closePanel, openPanel, toSlots, type OpenPanel } from "./layout/slots";
+import { canClearAll, closePanel, openPanel, toSlots, type OpenPanel } from "./layout/slots";
 import { panelTitle, renderPanel } from "./panels/registry";
 import { panelRange, selectPanelRange } from "./panels/rangeState";
 
@@ -94,7 +94,19 @@ export function App() {
     <div className="terminal">
       <header className="topbar">
         <span className="brand">QODER TERMINAL</span>
-        <span className="muted">Q · GP · N · W · CF · CLEAR · ASK</span>
+        <span className="topbar-actions">
+          <span className="muted">Q · GP · N · W · CF · CLEAR · ASK</span>
+          <button
+            type="button"
+            className="clear-all"
+            data-testid="clear-all"
+            aria-label="Clear all panels"
+            disabled={!canClearAll(panels)}
+            onClick={() => run("CLEAR")}
+          >
+            CLEAR ALL
+          </button>
+        </span>
       </header>
       <form onSubmit={onSubmit} className="command-bar">
         <span className="prompt">&gt;</span>
