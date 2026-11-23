@@ -1,6 +1,6 @@
 import { DEFAULT_HISTORY_RANGE, HISTORY_RANGES, type HistoryRange } from "../api/data";
 
-export const FUNCTION_CODES = ["Q", "GP", "N", "W", "CF", "CLEAR", "ASK"] as const;
+export const FUNCTION_CODES = ["Q", "GP", "N", "W", "CF", "XRAY", "CLEAR", "ASK"] as const;
 export type FunctionCode = (typeof FUNCTION_CODES)[number];
 
 export type Command =
@@ -12,8 +12,8 @@ export type Command =
 const FULL_SYMBOL = /^([0-9A-Z]{1,20})\.(HK|US|SH|SZ)$/;
 const HK_SHORT = /^\d{1,5}$/;
 export const REQUIRES_SYMBOL: ReadonlySet<FunctionCode> = new Set(["Q", "GP", "CF"]);
-// CLEAR acts on the whole grid rather than on one symbol, so it never takes one.
-const REJECTS_SYMBOL: ReadonlySet<FunctionCode> = new Set(["CLEAR"]);
+// CLEAR acts on the whole grid and XRAY on the whole demo portfolio, so neither takes a symbol.
+export const REJECTS_SYMBOL: ReadonlySet<FunctionCode> = new Set(["XRAY", "CLEAR"]);
 
 function isCode(token: string): token is FunctionCode {
   return (FUNCTION_CODES as readonly string[]).includes(token);

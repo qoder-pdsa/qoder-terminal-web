@@ -9,6 +9,7 @@ import { NewsPanel } from "./NewsPanel";
 import { QuotePanel } from "./QuotePanel";
 import { panelRange } from "./rangeState";
 import { WatchlistPanel } from "./WatchlistPanel";
+import { XrayPanel } from "./XrayPanel";
 
 export interface PanelContext {
   run: (input: string) => void;
@@ -42,5 +43,7 @@ export function renderPanel(cmd: RunnableCommand, ctx: PanelContext): ReactNode 
       return <WatchlistPanel onOpen={ctx.run} />;
     case "CF":
       return <CapitalFlowPanel symbol={cmd.symbol ?? ""} />;
+    case "XRAY":
+      return <XrayPanel />;
   }
 }

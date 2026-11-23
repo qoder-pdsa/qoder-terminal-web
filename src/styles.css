@@ -101,3 +101,6 @@ a { color: var(--tool); }
 /* Q panel: the quote head stays compact so the intraday line gets the rest of the cell. */
 .quote-head { margin-bottom: 6px; }
 .chart-intraday { height: clamp(140px, 26vh, 320px); }
+/* XRAY panel: reuses the watchlist table, but its rows open nothing and only the ETF weights move. */
+.xray tbody tr { cursor: default; }
+.xray-weight { width: 90px; margin-right: 6px; vertical-align: middle; accent-color: var(--amber); }

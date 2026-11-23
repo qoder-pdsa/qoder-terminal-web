@@ -3,8 +3,8 @@ import { complete, completionCandidates } from "./complete";
 import { FUNCTION_CODES } from "./parse";
 
 /** The codes that stand alone, i.e. the first-token candidates that are not symbols. */
-const STANDALONE = ["N", "W", "CLEAR"];
-/** The codes that follow a symbol; ASK leads a line and CLEAR takes no symbol. */
+const STANDALONE = ["N", "W", "XRAY", "CLEAR"];
+/** The codes that follow a symbol; ASK leads a line, CLEAR and XRAY take no symbol. */
 const AFTER_SYMBOL = ["Q", "GP", "N", "W", "CF"];
 
 /** One Tab press on the command bar as the user sees it. */
@@ -113,11 +113,12 @@ describe("completionCandidates", () => {
     expect(completionCandidates("700.HK ", ["700 Q"])).toEqual(AFTER_SYMBOL);
   });
 
-  it("never offers a symbol, ASK or CLEAR after a symbol", () => {
+  it("never offers a symbol, ASK, CLEAR or XRAY after a symbol", () => {
     const candidates = completionCandidates("700 ", ["700 Q", "9988 Q"]);
     expect(candidates).not.toContain("700.HK");
     expect(candidates).not.toContain("ASK");
     expect(candidates).not.toContain("CLEAR");
+    expect(candidates).not.toContain("XRAY");
   });
 
   it("offers no candidates for the range token of a GP command", () => {
@@ -175,6 +176,8 @@ describe("the command bar as the user sees it", () => {
   it("completes a first token to a code that stands alone", () => {
     expect(tab("N", ["700 Q"]).text).toBe("N");
     expect(tab("W", ["700 Q"]).text).toBe("W");
+    expect(tab("X", ["700 Q"]).text).toBe("XRAY");
+    expect(tab("x", ["700 Q"]).text).toBe("XRAY");
     expect(tab("C", ["700 Q"]).text).toBe("CLEAR");
     expect(tab("c", ["700 Q"]).text).toBe("CLEAR");
   });

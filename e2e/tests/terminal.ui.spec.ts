@@ -412,3 +412,47 @@ test("CF requires a symbol", async ({ page }) => {
   await run(page, "CF");
   await expect(page.getByTestId("command-error")).toContainText("CF requires a symbol");
 });
+
+test("XRAY shows the demo NVDA look-through exposure", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "XRAY");
+
+  await expect(page.getByTestId("xray-total")).toHaveText("10.0%");
+  // Requirement §3: NVDA 5.0% + ETF-A 3.2% + ETF-B 1.8%; cash carries no exposure.
+  for (const [holding, contribution] of [
+    ["NVDA", "5.0%"],
+    ["ETF-A", "3.2%"],
+    ["ETF-B", "1.8%"],
+    ["CASH", "0.0%"],
+  ]) {
+    await expect(page.getByTestId(`xray-contribution-${holding}`)).toHaveText(contribution);
+  }
+});
+
+test("XRAY moves a lowered ETF weight into cash and recalculates", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "XRAY");
+
+  const etfA = page.getByTestId("xray-weight-ETF-A");
+  // The demo position is the ceiling: an ETF can only be dragged down.
+  await expect(etfA).toHaveAttribute("max", "40");
+  await etfA.fill("0");
+
+  await expect(page.getByTestId("xray-weight-value-ETF-A")).toHaveText("0%");
+  await expect(page.getByTestId("xray-weight-value-CASH")).toHaveText("65%");
+  await expect(page.getByTestId("xray-contribution-ETF-A")).toHaveText("0.0%");
+  await expect(page.getByTestId("xray-total")).toHaveText("6.8%");
+  // The rest of the portfolio is untouched.
+  await expect(page.getByTestId("xray-weight-value-NVDA")).toHaveText("5%");
+  await expect(page.getByTestId("xray-contribution-ETF-B")).toHaveText("1.8%");
+
+  await etfA.fill("40");
+  await expect(page.getByTestId("xray-weight-value-CASH")).toHaveText("25%");
+  await expect(page.getByTestId("xray-total")).toHaveText("10.0%");
+});
+
+test("XRAY takes no symbol", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 XRAY");
+  await expect(page.getByTestId("command-error")).toContainText("XRAY takes no symbol");
+});

@@ -1,4 +1,4 @@
-import { FUNCTION_CODES, normalizeSymbol, REQUIRES_SYMBOL } from "./parse";
+import { FUNCTION_CODES, normalizeSymbol, REJECTS_SYMBOL, REQUIRES_SYMBOL } from "./parse";
 
 /** What one Tab press produced: the line to show, and every line it could have been. */
 export interface Completion {
@@ -11,8 +11,8 @@ export interface Completion {
   readonly matches: readonly string[];
 }
 
-// ASK leads a line and CLEAR takes no symbol, so neither can complete a second token.
-const AFTER_SYMBOL = FUNCTION_CODES.filter((code) => code !== "ASK" && code !== "CLEAR");
+// ASK leads a line and a code that takes no symbol cannot complete a second token.
+const AFTER_SYMBOL = FUNCTION_CODES.filter((code) => code !== "ASK" && !REJECTS_SYMBOL.has(code));
 // A first token is a symbol or a code that stands alone, never one that requires a symbol.
 const STANDALONE = FUNCTION_CODES.filter((code) => code !== "ASK" && !REQUIRES_SYMBOL.has(code));
 

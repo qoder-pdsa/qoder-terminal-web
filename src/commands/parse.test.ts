@@ -112,3 +112,29 @@ describe("parseCommand CLEAR (DEMO-5)", () => {
     });
   });
 });
+
+// Work item 10081 adds XRAY: it reads the whole demo portfolio, so like CLEAR it never carries a symbol.
+describe("parseCommand XRAY (work item 10081)", () => {
+  it.each([
+    ["XRAY", { kind: "function", code: "XRAY" }],
+    ["xray", { kind: "function", code: "XRAY" }],
+    ["  Xray  ", { kind: "function", code: "XRAY" }],
+  ])("parses %j as a symbol-less function code", (input, expected) => {
+    expect(parseCommand(input)).toEqual(expected);
+  });
+
+  it.each(["700 XRAY", "700 xray", "0700.HK XRAY", "AAPL.US XRAY"])(
+    "rejects %j because XRAY reads the demo portfolio",
+    (input) => {
+      expect(parseCommand(input).kind).toBe("invalid");
+    },
+  );
+
+  it("names the code in the rejection reason", () => {
+    expect(parseCommand("700 XRAY")).toEqual({
+      kind: "invalid",
+      input: "700 XRAY",
+      reason: "XRAY takes no symbol, e.g. XRAY",
+    });
+  });
+});
