@@ -29,6 +29,11 @@ describe("panelTitle", () => {
     expect(panelTitle({ kind: "function", code: "Q", symbol: "700.HK" })).toBe("700.HK Q");
   });
 
+  it("renders `SYMBOL OVME` for the option-protection panel", () => {
+    expect(panelTitle({ kind: "function", code: "OVME", symbol: "700.HK" })).toBe("700.HK OVME");
+    expect(panelTitle({ kind: "function", code: "OVME", symbol: "9988.HK" }, "1Y")).toBe("9988.HK OVME");
+  });
+
   it("renders only the code when the command carries no symbol", () => {
     expect(panelTitle({ kind: "function", code: "N" })).toBe("N");
   });

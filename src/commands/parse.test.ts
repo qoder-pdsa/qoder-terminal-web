@@ -28,13 +28,24 @@ describe("parseCommand", () => {
     ["W", { kind: "function", code: "W" }],
     ["700 CF", { kind: "function", code: "CF", symbol: "700.HK" }],
     ["9988.hk cf", { kind: "function", code: "CF", symbol: "9988.HK" }],
+    // OVME (workitem 10082): the option-protection panel takes a symbol and nothing else.
+    ["700 OVME", { kind: "function", code: "OVME", symbol: "700.HK" }],
+    ["0700.hk ovme", { kind: "function", code: "OVME", symbol: "700.HK" }],
     ["ASK compare Tencent and Alibaba", { kind: "ask", question: "compare Tencent and Alibaba" }],
   ])("parses %j", (input, expected) => {
     expect(parseCommand(input)).toEqual(expected);
   });
 
-  it.each(["", "ASK", "GP", "CF", "700 CF 3M", "700 XYZ", "700 Q EXTRA", "TENCENT Q"])("rejects %j", (input) => {
+  it.each(["", "ASK", "GP", "CF", "OVME", "700 CF 3M", "700 XYZ", "700 Q EXTRA", "TENCENT Q"])("rejects %j", (input) => {
     expect(parseCommand(input).kind).toBe("invalid");
+  });
+
+  it("rejects a bare OVME with the same hint the other symbol codes give", () => {
+    expect(parseCommand("OVME")).toEqual({
+      kind: "invalid",
+      input: "OVME",
+      reason: "OVME requires a symbol, e.g. 700 OVME",
+    });
   });
 });
 

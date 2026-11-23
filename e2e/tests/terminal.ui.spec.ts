@@ -234,7 +234,7 @@ test("Tab cycles through the candidates and Shift+Tab cycles back", async ({ pag
   await input.fill("700 ");
   await expect(input).toHaveAttribute(
     "data-completions",
-    "700 Q,700 GP,700 N,700 W,700 CF",
+    "700 Q,700 GP,700 N,700 W,700 CF,700 OVME",
   );
 
   await input.press("Tab");
@@ -411,4 +411,61 @@ test("CF requires a symbol", async ({ page }) => {
   await page.goto("./");
   await run(page, "CF");
   await expect(page.getByTestId("command-error")).toContainText("CF requires a symbol");
+});
+
+// OVME is pure frontend arithmetic on user input, so none of these flows touch a service.
+test("OVME opens on the demo parameters with the confirmed acceptance numbers", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 OVME");
+
+  const panel = page.getByTestId("ovme-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel).toContainText("700.HK");
+  // Default expiry 280: the bare stock loses 70, the protective put caps it at 28.
+  await expect(page.getByTestId("ovme-unprotected")).toContainText("-70.00 HKD");
+  await expect(page.getByTestId("ovme-protected")).toContainText("-28.00 HKD");
+  await expect(page.getByTestId("ovme-unprotected")).toHaveAttribute("data-direction", "down");
+  await expect(page.getByTestId("ovme-max-loss")).toContainText("-28.00 HKD");
+  await expect(page.getByTestId("ovme-breakeven-unprotected")).toHaveText("350 HKD");
+  await expect(page.getByTestId("ovme-breakeven-protected")).toHaveText("358 HKD");
+  await expect(page.getByTestId("ovme-chart").locator("canvas").first()).toBeVisible();
+});
+
+test("OVME follows the expiry slider and the expiry field", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 OVME");
+
+  await page.getByTestId("ovme-expiry-input").fill("245");
+  await expect(page.getByTestId("ovme-unprotected")).toContainText("-105.00 HKD");
+  await expect(page.getByTestId("ovme-protected")).toContainText("-28.00 HKD");
+
+  // Above the strike the put expires worthless, so the two lines stay one premium apart.
+  await page.getByTestId("ovme-slider").fill("340");
+  await expect(page.getByTestId("ovme-expiry-input")).toHaveValue("340");
+  await expect(page.getByTestId("ovme-unprotected")).toContainText("-10.00 HKD");
+  await expect(page.getByTestId("ovme-protected")).toContainText("-18.00 HKD");
+
+  // A draft that is not a price leaves the last applied expiry in force.
+  await page.getByTestId("ovme-expiry-input").fill("abc");
+  await expect(page.getByTestId("ovme-unprotected")).toContainText("-10.00 HKD");
+  await page.getByTestId("ovme-expiry-input").blur();
+  await expect(page.getByTestId("ovme-expiry-input")).toHaveValue("340");
+});
+
+test("OVME recalculates both lines when a parameter changes", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 OVME");
+
+  await page.getByTestId("ovme-premium-input").fill("10");
+  await expect(page.getByTestId("ovme-protected")).toContainText("-30.00 HKD");
+  await expect(page.getByTestId("ovme-max-loss")).toContainText("-30.00 HKD");
+  await expect(page.getByTestId("ovme-breakeven-protected")).toHaveText("360 HKD");
+  // The bare stock position does not depend on the put.
+  await expect(page.getByTestId("ovme-unprotected")).toContainText("-70.00 HKD");
+});
+
+test("OVME requires a symbol", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "OVME");
+  await expect(page.getByTestId("command-error")).toContainText("OVME requires a symbol");
 });

@@ -94,7 +94,7 @@ export function App() {
     <div className="terminal">
       <header className="topbar">
         <span className="brand">QODER TERMINAL</span>
-        <span className="muted">Q · GP · N · W · CF · CLEAR · ASK</span>
+        <span className="muted">Q · GP · N · W · CF · OVME · CLEAR · ASK</span>
       </header>
       <form onSubmit={onSubmit} className="command-bar">
         <span className="prompt">&gt;</span>

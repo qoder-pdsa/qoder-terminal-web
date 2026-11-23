@@ -5,7 +5,8 @@ import { FUNCTION_CODES } from "./parse";
 /** The codes that stand alone, i.e. the first-token candidates that are not symbols. */
 const STANDALONE = ["N", "W", "CLEAR"];
 /** The codes that follow a symbol; ASK leads a line and CLEAR takes no symbol. */
-const AFTER_SYMBOL = ["Q", "GP", "N", "W", "CF"];
+// OVME (workitem 10082) joins the list in FUNCTION_CODES order; every other entry is unchanged.
+const AFTER_SYMBOL = ["Q", "GP", "N", "W", "CF", "OVME"];
 
 /** One Tab press on the command bar as the user sees it. */
 const tab = (input: string, entries: readonly string[] = [], cycle = 0) =>
@@ -169,7 +170,14 @@ describe("the command bar as the user sees it", () => {
       "700.HK N",
       "700.HK W",
       "700.HK CF",
+      "700.HK OVME",
     ]);
+  });
+
+  it("completes the OVME code after a symbol", () => {
+    expect(tab("700 O", ["700 Q"]).text).toBe("700 OVME");
+    expect(tab("700 o", ["700 Q"]).text).toBe("700 OVME");
+    expect(tab("700.HK ov", ["700 Q"]).matches).toEqual(["700.HK OVME"]);
   });
 
   it("completes a first token to a code that stands alone", () => {
@@ -180,7 +188,7 @@ describe("the command bar as the user sees it", () => {
   });
 
   it("never completes a first token to a code that needs a symbol", () => {
-    for (const code of ["Q", "GP", "CF", "ASK"]) {
+    for (const code of ["Q", "GP", "CF", "OVME", "ASK"]) {
       expect(tab(code, ["700 Q"]).matches).toEqual([]);
       expect(tab(code, ["700 Q"]).text).toBe(code);
     }

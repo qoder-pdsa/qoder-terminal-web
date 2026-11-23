@@ -101,3 +101,18 @@ a { color: var(--tool); }
 /* Q panel: the quote head stays compact so the intraday line gets the rest of the cell. */
 .quote-head { margin-bottom: 6px; }
 .chart-intraday { height: clamp(140px, 26vh, 320px); }
+/* OVME panel: every number is user input, so the fields and the slider stay in the terminal palette.
+   The P&L follows the HKEX convention like the quote change does: red is a profit, green a loss. */
+.ovme-heading { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.05em; }
+.ovme-toolbar { align-items: center; }
+.ovme-field { display: flex; align-items: baseline; gap: 4px; font-size: 11px; letter-spacing: 0.05em; }
+.ovme-field input { width: 9ch; background: transparent; border: 1px solid var(--border); color: var(--amber); font: inherit; font-size: 12px; padding: 1px 4px; text-align: right; font-variant-numeric: tabular-nums; }
+.ovme-field input:focus { outline: 0; border-color: var(--amber); }
+.ovme-slider { width: 100%; margin: 0 0 6px; accent-color: var(--amber); }
+.ovme-readout { display: flex; gap: 12px; flex-wrap: wrap; font-size: 14px; margin-bottom: 4px; }
+.ovme-facts { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.05em; }
+.ovme-pnl { font-variant-numeric: tabular-nums; }
+.ovme-pnl[data-direction="up"] { color: var(--candle-up); }
+.ovme-pnl[data-direction="down"] { color: var(--candle-down); }
+.ovme-pnl[data-direction="flat"] { color: var(--muted); }
+.chart-ovme { height: clamp(160px, 30vh, 380px); }

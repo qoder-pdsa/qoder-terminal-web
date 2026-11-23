@@ -6,6 +6,7 @@ import { AskPanel } from "./AskPanel";
 import { CapitalFlowPanel } from "./CapitalFlowPanel";
 import { GraphPanel } from "./GraphPanel";
 import { NewsPanel } from "./NewsPanel";
+import { OvmePanel } from "./OvmePanel";
 import { QuotePanel } from "./QuotePanel";
 import { panelRange } from "./rangeState";
 import { WatchlistPanel } from "./WatchlistPanel";
@@ -42,5 +43,7 @@ export function renderPanel(cmd: RunnableCommand, ctx: PanelContext): ReactNode 
       return <WatchlistPanel onOpen={ctx.run} />;
     case "CF":
       return <CapitalFlowPanel symbol={cmd.symbol ?? ""} />;
+    case "OVME":
+      return <OvmePanel symbol={cmd.symbol ?? ""} />;
   }
 }

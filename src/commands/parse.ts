@@ -1,6 +1,6 @@
 import { DEFAULT_HISTORY_RANGE, HISTORY_RANGES, type HistoryRange } from "../api/data";
 
-export const FUNCTION_CODES = ["Q", "GP", "N", "W", "CF", "CLEAR", "ASK"] as const;
+export const FUNCTION_CODES = ["Q", "GP", "N", "W", "CF", "OVME", "CLEAR", "ASK"] as const;
 export type FunctionCode = (typeof FUNCTION_CODES)[number];
 
 export type Command =
@@ -11,7 +11,7 @@ export type Command =
 // Up to 20 characters so option symbols from a watchlist (MSFT261016P420000.US) round-trip through W → Q.
 const FULL_SYMBOL = /^([0-9A-Z]{1,20})\.(HK|US|SH|SZ)$/;
 const HK_SHORT = /^\d{1,5}$/;
-export const REQUIRES_SYMBOL: ReadonlySet<FunctionCode> = new Set(["Q", "GP", "CF"]);
+export const REQUIRES_SYMBOL: ReadonlySet<FunctionCode> = new Set(["Q", "GP", "CF", "OVME"]);
 // CLEAR acts on the whole grid rather than on one symbol, so it never takes one.
 const REJECTS_SYMBOL: ReadonlySet<FunctionCode> = new Set(["CLEAR"]);
 
