@@ -27,7 +27,41 @@ test.describe("frontend preview", () => {
     expect(await resp.text()).toMatch(new RegExp(`/preview/${slug}/assets/`));
   });
 
-  test("shares the production backend", async ({ request }) => {
+  test("serves its own synthetic API instead of the shared backend", async ({ request }) => {
+    // A preview must be readable in a normal browser without reaching the real services, so it answers the
+    // business API paths from the fixtures emitted into its own bundle (preview/synthetic.ts).
+    const resp = await request.get(`${previewUrl}synthetic/data/v1/quotes/700.HK`);
+    expect(resp.status()).toBe(200);
+    const quote = await resp.json();
+    expect(quote.symbol).toBe("700.HK");
+    expect(quote.currency).toBe("HKD");
+    // Contract prices stay decimal strings end to end.
+    expect(typeof quote.price).toBe("string");
+    expect(quote.price).toMatch(/^\d+\.\d{4}$/);
+  });
+
+  test("the published bundle resolves its API base inside the preview", async ({ request }) => {
+    const html = await (await request.get(previewUrl)).text();
+    const asset = html.match(new RegExp(`/preview/${slug}/assets/[^"]+\\.js`))?.[0];
+    expect(asset, "the preview index references its own bundle").toBeTruthy();
+    const js = await (await request.get(`${urls.webOrigin}${asset}`)).text();
+    expect(js).toContain("synthetic");
+  });
+
+  test("the synthetic API covers the watchlist it offers", async ({ request }) => {
+    const lists = await (await request.get(`${previewUrl}synthetic/data/v1/watchlists`)).json();
+    expect(Array.isArray(lists)).toBeTruthy();
+    const symbols = lists.flatMap((l: { symbols: { symbol: string }[] }) => l.symbols.map((s) => s.symbol));
+    expect(symbols.length).toBeGreaterThan(0);
+    for (const symbol of symbols) {
+      for (const endpoint of ["quotes", "intraday", "history", "indicators", "capital-flow"]) {
+        const resp = await request.get(`${previewUrl}synthetic/data/v1/${endpoint}/${symbol}`);
+        expect(resp.status(), `${endpoint}/${symbol}`).toBe(200);
+      }
+    }
+  });
+
+  test("the gateway's real API still serves production", async ({ request }) => {
     const resp = await request.get(`${urls.data}/v1/quotes/700.HK`);
     expect(resp.ok()).toBeTruthy();
     expect((await resp.json()).currency).toBe("HKD");

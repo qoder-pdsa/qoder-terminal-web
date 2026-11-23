@@ -74,8 +74,20 @@ deploy.sh preview feature/bl02-graph-price-panel-20260918123222
   (atomic replace), which the web container mounts read-only at `/usr/share/nginx/preview`.
 - **Routing**: nginx serves `/preview/<slug>/` with SPA fallback to that preview's own `index.html`; `index.html` is
   `no-cache`, hashed assets are immutable; an unknown slug is a 404. `/` stays the production bundle.
-- **Shared backend**: a preview calls the same `/api/data`, `/api/analyst`, `/api/user` as production. Previews therefore
-  only show **frontend** changes; a branch that changes a backend contract still needs the production deployment.
+- **Isolated data**: a preview never calls the gateway's `/api/*` routes, because those proxy to the real data,
+  analyst and user services. A preview build (base `/preview/<slug>/`) resolves its API base to
+  `<base>synthetic/data` and `<base>synthetic/analyst` (`src/api/config.ts`), and Vite emits the contract-shaped
+  fixtures of `preview/synthetic.ts` next to the bundle (`vite.config.ts`), so a normal browser reads synthetic
+  data from the preview's own origin with no request interception and no real WebSocket/SSE. Production and dev
+  builds are untouched: with base `/` the configured `VITE_DATA_URL` / `VITE_ANALYST_URL` still apply, and the
+  `--build-arg` API values `deploy.sh preview` passes are ignored by a preview build. Known limits of a static
+  synthetic API, all recorded in `preview/synthetic.ts`: fixtures are keyed by path only, so query parameters
+  (`range`, `window`, `limit`) do not vary a response — a GP range button or SMA toggle re-reads the same
+  fixture; the batch collection `GET /v1/quotes?symbols=…` has no fixture, because its path is the directory that
+  holds `/v1/quotes/<symbol>`, so `W` lists the synthetic group with `…` prices while a row click still opens a
+  working `Q`; `ASK` needs a POST/SSE stream a static bundle cannot answer; and a symbol without a fixture falls
+  back to `index.html`, which shows the panel's normal error state. OVME needs no API at all, so an acceptance
+  preview of it is complete.
 - **Retention**: at most 10 previews, none older than 7 days; both enforced on every `preview` run. `preview-ls` shows
   slug, branch, commit, build time and size; `preview-rm <slug>` removes one (non-zero exit when it does not exist).
 - **Verification**: `PREVIEW_SLUG=<slug> WEB_URL=... DATA_URL=... npx playwright test -c e2e/playwright.config.ts --project=api`

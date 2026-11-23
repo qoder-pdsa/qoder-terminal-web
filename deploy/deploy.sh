@@ -11,7 +11,7 @@
 #   deploy.sh health          health checks; exits 0 only when all pass
 #   deploy.sh status          container status and currently deployed versions
 #   deploy.sh logs <service>  last 200 log lines of a service (data/analyst/user/web/postgres)
-#   deploy.sh preview <branch>   build that branch's frontend and publish it at /preview/<slug>/ (shared backend)
+#   deploy.sh preview <branch>   build that branch's frontend and publish it at /preview/<slug>/ (self-contained synthetic API)
 #   deploy.sh preview-ls         list previews: slug, branch, commit, build time, size
 #   deploy.sh preview-rm <slug>  remove one preview
 set -euo pipefail
@@ -129,7 +129,10 @@ cmd_status() {
 
 # --- per-branch frontend previews -------------------------------------------------------------
 # A preview is the web bundle of one branch, built with base /preview/<slug>/ and served by the production
-# gateway from $PREVIEWS/<slug>/ (mounted read-only into the web container). It talks to the shared backend.
+# gateway from $PREVIEWS/<slug>/ (mounted read-only into the web container). A branch that carries the preview
+# synthetic API (workitem 10082 onward) resolves its own API base under that base path and answers it from the
+# fixtures Vite emits next to the bundle, so it never reaches the /api/* routes below; the API build args only
+# matter for older branches. Production (/) always talks to the real services.
 
 preview_meta() { # slug key
   [ -f "$PREVIEWS/$1/.preview.json" ] || return 1

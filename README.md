@@ -48,6 +48,8 @@ the space that precedes the function code already typed) or a function code (`70
 `Tab` cycles the candidates, `Shift+Tab` cycles back, and `↑` / `↓` still recall this session's commands.
 
 Environment variables: `VITE_DATA_URL` (default `http://localhost:8081`) and `VITE_ANALYST_URL` (default `http://localhost:8082`).
+A preview build (base `/preview/<slug>/`) ignores both and reads the synthetic fixtures emitted from
+`preview/synthetic.ts`, so an acceptance preview never contacts the real services.
 
 ## Docs
 - [Production deployment](docs/deployment.md)
