@@ -104,3 +104,21 @@ a { color: var(--tool); }
 /* XRAY panel: reuses the watchlist table, but its rows open nothing and only the ETF weights move. */
 .xray tbody tr { cursor: default; }
 .xray-weight { width: 90px; margin-right: 6px; vertical-align: middle; accent-color: var(--amber); }
+/* XRAY v2: the two boards sit side by side so the rank reversal is visible at a glance. */
+.xray-boards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 8px; }
+.xray-boards h3 { margin: 0 0 4px; font-size: 11px; letter-spacing: 0.05em; font-weight: normal; }
+.xray-board { list-style: none; margin: 0; padding: 0; }
+.xray-board li { border-bottom: 1px solid var(--border); }
+.xray-rank { display: flex; width: 100%; gap: 6px; background: transparent; border: 0; color: var(--text); font: inherit; font-size: 12px; padding: 3px 4px; cursor: pointer; text-align: left; }
+.xray-rank:hover, .xray-rank:focus-visible { background: #161616; color: var(--amber); }
+.xray-rank .num { margin-left: auto; }
+.xray-rank[aria-expanded="true"] .symbol { color: var(--amber); }
+.xray-detail { margin-top: 8px; border: 1px solid var(--border); padding: 6px 8px; }
+.xray-detail h3 { margin: 0 0 4px; font-size: 11px; letter-spacing: 0.05em; font-weight: normal; color: var(--amber); }
+.xray-detail ul { list-style: none; margin: 0; padding: 0; }
+.xray-detail li { display: flex; gap: 6px; font-size: 12px; padding: 2px 0; border-bottom: 1px solid var(--border); }
+.xray-detail li .num { margin-left: auto; }
+.xray-detail p { display: flex; gap: 6px; margin: 4px 0 0; font-size: 12px; color: var(--amber); }
+.xray-detail p .num { margin-left: auto; }
+/* Only an isolated demo preview build renders this line (deploy.sh preview <branch> isolated). */
+.isolated-banner { padding: 4px 12px; border-bottom: 1px solid var(--border); font-size: 11px; letter-spacing: 0.05em; }

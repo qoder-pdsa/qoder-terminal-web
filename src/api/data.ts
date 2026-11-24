@@ -1,4 +1,4 @@
-import { DATA_URL } from "./config";
+import { DATA_URL, previewFetch } from "./config";
 
 /** Mirrors Quote in qoder-terminal-data/api/openapi.yaml; numbers are decimal strings. */
 export interface Quote {
@@ -126,7 +126,7 @@ async function apiError(resp: Response): Promise<ApiError> {
 }
 
 export async function fetchQuote(symbol: string, signal?: AbortSignal): Promise<Quote> {
-  const resp = await fetch(`${DATA_URL}/v1/quotes/${encodeURIComponent(symbol)}`, { signal });
+  const resp = await previewFetch(`${DATA_URL}/v1/quotes/${encodeURIComponent(symbol)}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as Quote;
 }
@@ -137,7 +137,7 @@ export async function fetchHistory(
   signal?: AbortSignal,
 ): Promise<Candle[]> {
   const query = new URLSearchParams({ range });
-  const resp = await fetch(`${DATA_URL}/v1/history/${encodeURIComponent(symbol)}?${query}`, { signal });
+  const resp = await previewFetch(`${DATA_URL}/v1/history/${encodeURIComponent(symbol)}?${query}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as Candle[];
 }
@@ -150,14 +150,14 @@ export async function fetchIndicator(
   signal?: AbortSignal,
 ): Promise<IndicatorSeries> {
   const query = new URLSearchParams({ kind, window: String(window), range });
-  const resp = await fetch(`${DATA_URL}/v1/indicators/${encodeURIComponent(symbol)}?${query}`, { signal });
+  const resp = await previewFetch(`${DATA_URL}/v1/indicators/${encodeURIComponent(symbol)}?${query}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as IndicatorSeries;
 }
 
 export async function fetchNews(symbol: string, limit: number, signal?: AbortSignal): Promise<NewsItem[]> {
   const query = new URLSearchParams({ symbol, limit: String(limit) });
-  const resp = await fetch(`${DATA_URL}/v1/news?${query}`, { signal });
+  const resp = await previewFetch(`${DATA_URL}/v1/news?${query}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as NewsItem[];
 }
@@ -165,25 +165,25 @@ export async function fetchNews(symbol: string, limit: number, signal?: AbortSig
 /** One request for a whole watchlist group; the data service makes a single upstream call. */
 export async function fetchQuotes(symbols: readonly string[], signal?: AbortSignal): Promise<Quote[]> {
   const query = new URLSearchParams({ symbols: symbols.slice(0, MAX_BATCH_SYMBOLS).join(",") });
-  const resp = await fetch(`${DATA_URL}/v1/quotes?${query}`, { signal });
+  const resp = await previewFetch(`${DATA_URL}/v1/quotes?${query}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as Quote[];
 }
 
 export async function fetchWatchlists(signal?: AbortSignal): Promise<Watchlist[]> {
-  const resp = await fetch(`${DATA_URL}/v1/watchlists`, { signal });
+  const resp = await previewFetch(`${DATA_URL}/v1/watchlists`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as Watchlist[];
 }
 
 export async function fetchCapitalFlow(symbol: string, signal?: AbortSignal): Promise<CapitalFlow> {
-  const resp = await fetch(`${DATA_URL}/v1/capital-flow/${encodeURIComponent(symbol)}`, { signal });
+  const resp = await previewFetch(`${DATA_URL}/v1/capital-flow/${encodeURIComponent(symbol)}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as CapitalFlow;
 }
 
 export async function fetchIntraday(symbol: string, signal?: AbortSignal): Promise<Intraday> {
-  const resp = await fetch(`${DATA_URL}/v1/intraday/${encodeURIComponent(symbol)}`, { signal });
+  const resp = await previewFetch(`${DATA_URL}/v1/intraday/${encodeURIComponent(symbol)}`, { signal });
   if (!resp.ok) throw await apiError(resp);
   return (await resp.json()) as Intraday;
 }

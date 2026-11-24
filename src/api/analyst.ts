@@ -1,4 +1,4 @@
-import { ANALYST_URL } from "./config";
+import { ANALYST_URL, previewFetch } from "./config";
 
 /** Mirrors qoder-terminal-analyst/api/agent-event.schema.json. */
 export type AgentEvent =
@@ -21,7 +21,7 @@ export function splitSse(buffer: string): { events: AgentEvent[]; rest: string }
 }
 
 export async function* ask(question: string, signal?: AbortSignal): AsyncGenerator<AgentEvent> {
-  const resp = await fetch(`${ANALYST_URL}/v1/ask`, {
+  const resp = await previewFetch(`${ANALYST_URL}/v1/ask`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ question }),

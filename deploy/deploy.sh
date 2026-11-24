@@ -11,8 +11,13 @@
 #   deploy.sh health          health checks; exits 0 only when all pass
 #   deploy.sh status          container status and currently deployed versions
 #   deploy.sh logs <service>  last 200 log lines of a service (data/analyst/user/web/postgres)
-#   deploy.sh preview <branch>   build that branch's frontend and publish it at /preview/<slug>/ (shared backend)
-#   deploy.sh preview-ls         list previews: slug, branch, commit, build time, size
+#   deploy.sh preview <branch> [default|isolated]
+#                             build that branch's frontend and publish it at /preview/<slug>/. 'default' (the
+#                             historical behaviour) talks to the shared backend through /api/*; 'isolated' publishes
+#                             a demo bundle at /preview/<slug>-iso/ that refuses every business call and points its
+#                             business URLs at a path inside the preview, so a plain browser can open it without
+#                             reaching the real data/analyst services.
+#   deploy.sh preview-ls         list previews: slug, branch, commit, mode, build time, size
 #   deploy.sh preview-rm <slug>  remove one preview
 set -euo pipefail
 
@@ -129,7 +134,8 @@ cmd_status() {
 
 # --- per-branch frontend previews -------------------------------------------------------------
 # A preview is the web bundle of one branch, built with base /preview/<slug>/ and served by the production
-# gateway from $PREVIEWS/<slug>/ (mounted read-only into the web container). It talks to the shared backend.
+# gateway from $PREVIEWS/<slug>/ (mounted read-only into the web container). In the default mode it talks to
+# the shared backend; in the isolated mode it is a demo bundle that refuses every business call.
 
 preview_meta() { # slug key
   [ -f "$PREVIEWS/$1/.preview.json" ] || return 1
@@ -137,8 +143,12 @@ preview_meta() { # slug key
 }
 
 cmd_preview() {
-  local branch=${1:?usage: deploy.sh preview <branch>}
-  local slug; slug=$(preview_slug "$branch"); preview_validate_slug "$slug"
+  local branch=${1:?usage: deploy.sh preview <branch> [default|isolated]}
+  local mode; mode=$(preview_resolve_mode "${2:-}")
+  local slug; slug=$(preview_slug "$branch")
+  # The isolated bundle gets its own slug, so publishing it never replaces the ordinary preview.
+  if [ "$mode" = isolated ]; then slug=$(preview_isolated_slug "$slug"); fi
+  preview_validate_slug "$slug"
   local web="$SRC/qoder-terminal-web"
   [ -d "$web/.git" ] || { log "ERROR $web is not a checkout; run deploy.sh sync main first"; exit 1; }
   git -C "$web" fetch -q --prune origin
@@ -152,8 +162,9 @@ cmd_preview() {
   git -C "$web" archive "origin/$branch" | tar -x -C "$tmp"
   # Built with the deployment tooling's own Dockerfile.preview, so the branch's Dockerfile/vite config do not matter
   local image="qoder-terminal/web-preview:$slug"
-  docker build -q -f "$web/deploy/Dockerfile.preview" \
-    --build-arg VITE_BASE="/preview/$slug/" --build-arg VITE_DATA_URL=/api/data --build-arg VITE_ANALYST_URL=/api/analyst \
+  # Unquoted on purpose: preview_build_args prints this mode's --build-arg flags, none of which contains a space
+  # shellcheck disable=SC2046
+  docker build -q -f "$web/deploy/Dockerfile.preview" $(preview_build_args "$mode" "$slug") \
     -t "$image" "$tmp" >/dev/null
   # A named helper container so a failed earlier run never blocks the next one
   local cname="qt-preview-$slug"
@@ -161,7 +172,7 @@ cmd_preview() {
   docker create --name "$cname" "$image" >/dev/null
   docker cp -q "$cname:/app/dist" "$tmp/dist"
   docker rm "$cname" >/dev/null; docker rmi "$image" >/dev/null 2>&1 || true
-  printf '{"slug":"%s","branch":"%s","commit":"%s","builtAt":"%s"}\n' "$slug" "$branch" "$commit" "$(date -u +%FT%TZ)" > "$tmp/dist/.preview.json"
+  printf '{"slug":"%s","branch":"%s","commit":"%s","mode":"%s","builtAt":"%s"}\n' "$slug" "$branch" "$commit" "$mode" "$(date -u +%FT%TZ)" > "$tmp/dist/.preview.json"
 
   # Atomic replace so a preview is never half-published
   mkdir -p "$PREVIEWS"; chmod 755 "$PREVIEWS"
@@ -169,7 +180,7 @@ cmd_preview() {
   [ -d "$PREVIEWS/$slug" ] && mv "$PREVIEWS/$slug" "$PREVIEWS/.$slug.old"
   mv "$PREVIEWS/.$slug.new" "$PREVIEWS/$slug"; rm -rf "$PREVIEWS/.$slug.old"
   preview_prune "$slug"
-  log "preview $slug ← $branch @ $commit"
+  log "preview $slug ← $branch @ $commit ($mode mode)"
   log "URL: $PUBLIC_URL/preview/$slug/"
 }
 
@@ -188,11 +199,11 @@ preview_prune() {
 
 cmd_preview_ls() {
   [ -d "$PREVIEWS" ] && [ -n "$(ls -A "$PREVIEWS" 2>/dev/null)" ] || { log "no previews"; return 0; }
-  printf '%-40s %-48s %-8s %-20s %s\n' SLUG BRANCH COMMIT BUILT SIZE
+  printf '%-40s %-48s %-8s %-10s %-20s %s\n' SLUG BRANCH COMMIT MODE BUILT SIZE
   for dir in $(ls -1td "$PREVIEWS"/*/); do
     local slug; slug=$(basename "$dir")
-    printf '%-40s %-48s %-8s %-20s %s\n' "$slug" "$(preview_meta "$slug" branch)" "$(preview_meta "$slug" commit)" \
-      "$(preview_meta "$slug" builtAt)" "$(du -sh "$dir" | cut -f1)"
+    printf '%-40s %-48s %-8s %-10s %-20s %s\n' "$slug" "$(preview_meta "$slug" branch)" "$(preview_meta "$slug" commit)" \
+      "$(preview_meta "$slug" mode)" "$(preview_meta "$slug" builtAt)" "$(du -sh "$dir" | cut -f1)"
   done
 }
 

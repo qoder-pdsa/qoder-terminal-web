@@ -9,5 +9,8 @@ COPY . .
 ARG VITE_BASE=/
 ARG VITE_DATA_URL=/api/data
 ARG VITE_ANALYST_URL=/api/analyst
-ENV VITE_DATA_URL=${VITE_DATA_URL} VITE_ANALYST_URL=${VITE_ANALYST_URL} VITE_BASE=${VITE_BASE}
+# Set to 1 only for an isolated demo preview: the bundle then refuses every business-service call
+# instead of reaching the shared backend (deploy.sh preview <branch> isolated).
+ARG VITE_ISOLATED_DEMO=
+ENV VITE_DATA_URL=${VITE_DATA_URL} VITE_ANALYST_URL=${VITE_ANALYST_URL} VITE_BASE=${VITE_BASE} VITE_ISOLATED_DEMO=${VITE_ISOLATED_DEMO}
 RUN npm run build -- --base="$VITE_BASE"

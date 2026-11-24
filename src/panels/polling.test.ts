@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PreviewBackendDisabled } from "../api/config";
 import { ApiError } from "../api/data";
 import { shouldKeepPolling } from "./polling";
 
@@ -12,6 +13,8 @@ describe("shouldKeepPolling", () => {
     ["a network failure", new Error("fetch failed"), true],
     ["a non-Error rejection", "socket hang up", true],
     ["nothing at all", undefined, true],
+    // An isolated preview never gains a backend, so re-polling would only repeat a local refusal.
+    ["an isolated preview with no backend", new PreviewBackendDisabled(), false],
   ])("stops polling only for %s", (_label, error, expected) => {
     expect(shouldKeepPolling(error)).toBe(expected);
   });

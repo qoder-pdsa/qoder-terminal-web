@@ -456,3 +456,109 @@ test("XRAY takes no symbol", async ({ page }) => {
   await run(page, "700 XRAY");
   await expect(page.getByTestId("command-error")).toContainText("XRAY takes no symbol");
 });
+
+test("XRAY ranks the direct board and the look-through board side by side", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "XRAY");
+
+  // Requirement v2 §3.1: the baseline portfolio looks through to NVDA, AAPL, MSFT, GOOGL, AMZN.
+  const look = page.getByTestId("xray-look-row");
+  await expect(look).toHaveCount(5);
+  await expect(look.nth(0)).toHaveAttribute("data-symbol", "NVDA");
+  await expect(look.nth(0)).toContainText("10.0%");
+  await expect(look.nth(1)).toHaveAttribute("data-symbol", "AAPL");
+  await expect(look.nth(1)).toContainText("5.7%");
+  await expect(look.nth(4)).toHaveAttribute("data-symbol", "AMZN");
+  await expect(look.nth(4)).toContainText("3.85%");
+
+  // Only NVDA is held directly in the baseline portfolio.
+  const direct = page.getByTestId("xray-direct-row");
+  await expect(direct).toHaveCount(1);
+  await expect(direct.nth(0)).toHaveAttribute("data-symbol", "NVDA");
+  await expect(direct.nth(0)).toContainText("5.0%");
+});
+
+test("XRAY shows the hidden-heavy reversal in the second portfolio", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "XRAY");
+  await page.getByTestId("xray-portfolio-P2").click();
+  await expect(page.getByTestId("xray-portfolio-P2")).toHaveAttribute("aria-pressed", "true");
+
+  // Requirement v2 §3.2: NVDA is fifth on direct weight and first once ETF-C is looked through.
+  const direct = page.getByTestId("xray-direct-row");
+  await expect(direct).toHaveCount(5);
+  await expect(direct.nth(4)).toHaveAttribute("data-symbol", "NVDA");
+  await expect(direct.nth(4)).toHaveAttribute("data-rank", "5");
+  await expect(direct.nth(4)).toContainText("3.0%");
+
+  const look = page.getByTestId("xray-look-row");
+  await expect(look.nth(0)).toHaveAttribute("data-symbol", "NVDA");
+  await expect(look.nth(0)).toHaveAttribute("data-rank", "1");
+  await expect(look.nth(0)).toContainText("21.0%");
+  await expect(page.getByTestId("xray-total")).toHaveText("21.0%");
+});
+
+test("XRAY reconciles a symbol into its direct position plus every ETF channel", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "XRAY");
+  await page.getByTestId("xray-portfolio-P2").click();
+  await page.getByTestId("xray-open-look-NVDA").click();
+
+  const detail = page.getByTestId("xray-detail-NVDA");
+  await expect(detail).toBeVisible();
+  await expect(page.getByTestId("xray-channel-direct")).toContainText("3.0%");
+  // 60% position × 30% NVDA inside ETF-C
+  await expect(page.getByTestId("xray-channel-ETF-C")).toContainText("60%");
+  await expect(page.getByTestId("xray-channel-ETF-C")).toContainText("30%");
+  await expect(page.getByTestId("xray-channel-ETF-C")).toContainText("18.0%");
+  await expect(page.getByTestId("xray-detail-total")).toContainText("21.0%");
+
+  // A symbol with no direct position shows its ETF channels only.
+  await page.getByTestId("xray-open-look-NVDA").click();
+  await expect(page.getByTestId("xray-detail-NVDA")).toHaveCount(0);
+  await page.getByTestId("xray-portfolio-P1").click();
+  await page.getByTestId("xray-open-look-AAPL").click();
+  await expect(page.getByTestId("xray-channel-direct")).toHaveCount(0);
+  await expect(page.getByTestId("xray-channel-ETF-A")).toContainText("3.6%");
+  await expect(page.getByTestId("xray-channel-ETF-B")).toContainText("2.1%");
+  await expect(page.getByTestId("xray-detail-total")).toContainText("5.7%");
+});
+
+test("XRAY re-ranks both boards when an ETF position is lowered", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "XRAY");
+  await page.getByTestId("xray-portfolio-P2").click();
+
+  await page.getByTestId("xray-weight-ETF-C").fill("10");
+
+  // Requirement v2 §5: AAPL 6.0 + 1.0 = 7.0% takes the lead, NVDA 3.0 + 3.0 = 6.0% is second.
+  const look = page.getByTestId("xray-look-row");
+  await expect(look.nth(0)).toHaveAttribute("data-symbol", "AAPL");
+  await expect(look.nth(0)).toContainText("7.0%");
+  await expect(look.nth(1)).toHaveAttribute("data-symbol", "NVDA");
+  await expect(look.nth(1)).toContainText("6.0%");
+  await expect(page.getByTestId("xray-weight-value-CASH")).toHaveText("67.5%");
+  await expect(page.getByTestId("xray-total")).toHaveText("6.0%");
+  // The direct board never moves: only ETF positions can be lowered.
+  await expect(page.getByTestId("xray-direct-row").nth(0)).toHaveAttribute("data-symbol", "AAPL");
+  await expect(page.getByTestId("xray-direct-row").nth(4)).toHaveAttribute("data-symbol", "NVDA");
+});
+
+test("XRAY adjusts the two portfolios independently", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "XRAY");
+  await page.getByTestId("xray-portfolio-P2").click();
+  await page.getByTestId("xray-weight-ETF-C").fill("10");
+  await expect(page.getByTestId("xray-total")).toHaveText("6.0%");
+
+  await page.getByTestId("xray-portfolio-P1").click();
+  await expect(page.getByTestId("xray-total")).toHaveText("10.0%");
+  await expect(page.getByTestId("xray-weight-value-ETF-A")).toHaveText("40%");
+  await expect(page.getByTestId("xray-weight-value-CASH")).toHaveText("25%");
+});
+
+test("an ordinary build shows no isolated-preview banner", async ({ page }) => {
+  await page.goto("./");
+  // The banner only exists in a bundle built with VITE_ISOLATED_DEMO=1 (deploy.sh preview <branch> isolated).
+  await expect(page.getByTestId("isolated-preview-banner")).toHaveCount(0);
+});

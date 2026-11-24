@@ -59,12 +59,15 @@ because the runtime policy on the executors refuses pushes to `main`.
 
 ## Per-branch frontend previews
 
-`deploy.sh preview <branch>` gives a work item its own URL without touching production, the way Vercel/Railway
-preview deployments do:
+`deploy.sh preview <branch> [default|isolated]` gives a work item its own URL without touching production, the way
+Vercel/Railway preview deployments do:
 
 ```
 deploy.sh preview feature/bl02-graph-price-panel-20260918123222
 → https://qoder.live/preview/bl02-graph-price-panel-20260918123222/
+
+deploy.sh preview feature/demo-10081-xray-20261123 isolated
+→ https://qoder.live/preview/demo-10081-xray-20261123-iso/
 ```
 
 - **Slug**: the branch name without its type prefix (`feature/`, `fix/`), lowercased, runs of anything outside
@@ -74,10 +77,19 @@ deploy.sh preview feature/bl02-graph-price-panel-20260918123222
   (atomic replace), which the web container mounts read-only at `/usr/share/nginx/preview`.
 - **Routing**: nginx serves `/preview/<slug>/` with SPA fallback to that preview's own `index.html`; `index.html` is
   `no-cache`, hashed assets are immutable; an unknown slug is a 404. `/` stays the production bundle.
-- **Shared backend**: a preview calls the same `/api/data`, `/api/analyst`, `/api/user` as production. Previews therefore
-  only show **frontend** changes; a branch that changes a backend contract still needs the production deployment.
+- **Shared backend (the default mode)**: a preview calls the same `/api/data`, `/api/analyst`, `/api/user` as production.
+  Previews therefore only show **frontend** changes; a branch that changes a backend contract still needs the production
+  deployment.
+- **Isolated demo mode**: `deploy.sh preview <branch> isolated` builds the same sources with `VITE_ISOLATED_DEMO=1` and
+  points `VITE_DATA_URL` / `VITE_ANALYST_URL` at `/preview/<slug>/no-backend`, a path the gateway answers statically.
+  `src/api/config.ts` reads the flag and its `previewFetch` — the app's only fetch boundary — refuses every business
+  call with a mapped `PREVIEW_NO_BACKEND` error (status 404, so polling panels stop instead of retrying). A plain
+  browser can therefore open the preview and use the built-in demo features (`XRAY`) with demo data only: no request
+  reaches the real data/analyst services and no WebSocket or SSE stream is opened. Panels that need a service render
+  that error instead of live data. The isolated bundle gets its own `-iso` slug, so publishing it never replaces the
+  ordinary preview of the same branch, and `.preview.json` records which mode was built.
 - **Retention**: at most 10 previews, none older than 7 days; both enforced on every `preview` run. `preview-ls` shows
-  slug, branch, commit, build time and size; `preview-rm <slug>` removes one (non-zero exit when it does not exist).
+  slug, branch, commit, mode, build time and size; `preview-rm <slug>` removes one (non-zero exit when it does not exist).
 - **Verification**: `PREVIEW_SLUG=<slug> WEB_URL=... DATA_URL=... npx playwright test -c e2e/playwright.config.ts --project=api`
   runs `e2e/tests/preview.api.spec.ts` (skipped when `PREVIEW_SLUG` is unset).
 - **Release**: once a human accepts the preview, `main` is fast-forwarded and production is updated with

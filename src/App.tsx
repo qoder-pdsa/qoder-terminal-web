@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { ISOLATED_DEMO } from "./api/config";
 import type { HistoryRange } from "./api/data";
 import { complete, completionCandidates } from "./commands/complete";
 import { back, current, EMPTY_HISTORY, forward, push, type HistoryState } from "./commands/history";
@@ -109,6 +110,11 @@ export function App() {
           autoFocus
         />
       </form>
+      {ISOLATED_DEMO && (
+        <div className="muted isolated-banner" data-testid="isolated-preview-banner">
+          ISOLATED DEMO PREVIEW — BUSINESS SERVICES DISABLED, BUILT-IN DEMO DATA ONLY
+        </div>
+      )}
       {message && <div className="down message" data-testid="command-error">{message}</div>}
       <main className="grid">
         {toSlots(panels).map((p, i) => {
