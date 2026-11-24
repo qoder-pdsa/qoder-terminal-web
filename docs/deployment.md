@@ -88,6 +88,16 @@ deploy.sh preview feature/demo-10081-xray-20261123 isolated
   reaches the real data/analyst services and no WebSocket or SSE stream is opened. Panels that need a service render
   that error instead of live data. The isolated bundle gets its own `-iso` slug, so publishing it never replaces the
   ordinary preview of the same branch, and `.preview.json` records which mode was built.
+- **Self-isolating demo slugs (no host change needed)**: a deployment host whose tooling predates the mode above only
+  runs `deploy.sh preview <branch>`, which injects the shared backend's URLs and no `VITE_ISOLATED_DEMO`. For the work
+  item 10081 demo the branch covers that itself: `vite.config.ts` recognizes the slugs listed in
+  `src/api/demoPreview.ts` (`DEMO_PREVIEW_SLUGS`, i.e. `demo-10081-xray-20261123` and its `-iso` variant) in the build's
+  own base path and then marks the build isolated and rewrites both business URLs to `<base>no-backend`, so the artifact
+  contains no `/api/data` or `/api/analyst` reference at all. Independently of the build environment, `src/api/config.ts`
+  also derives isolation from `import.meta.env.BASE_URL`, so even a build that only receives `--base` on the command line
+  refuses every business call. Any other base — production `/`, `make dev`, another branch's preview — keeps the URLs it
+  was configured with, so ordinary previews are unchanged. Adding a slug to that list is a deliberate decision: it makes
+  every preview published under that slug demo-only.
 - **Retention**: at most 10 previews, none older than 7 days; both enforced on every `preview` run. `preview-ls` shows
   slug, branch, commit, mode, build time and size; `preview-rm <slug>` removes one (non-zero exit when it does not exist).
 - **Verification**: `PREVIEW_SLUG=<slug> WEB_URL=... DATA_URL=... npx playwright test -c e2e/playwright.config.ts --project=api`
