@@ -40,7 +40,7 @@ docker compose up --build                     # includes PostgreSQL and user (ru
 | `N` / `700 N` | News for one symbol, or the first watchlist group merged and de-duplicated | ✅ |
 | `W` | Watchlist groups (the Longbridge account's; mock has one demo group) with prices polled every 5 s; click a row for `Q`; click the `PRICE` / `CHANGE` header to sort (first click ▼, second ▲) | ✅ |
 | `700 CF` | Intraday capital flow: net inflow per minute + large / medium / small order distribution | ✅ |
-| `700 OVME` | Option protection: expiry P&L per share of the stock alone vs. stock + protective put. Defaults 350 cost / 330 strike / 8 premium HKD, all editable; expiry slider 200–450 covers the acceptance range | ✅ |
+| `700 OVME` | Option analysis in two tabs. **Protective put**: expiry P&L per share of the stock alone vs. stock + put (defaults 350 cost / 330 strike / 8 premium HKD, expiry slider 200–450). **Earnings IV**: an ATM call bought at 350 / 30 days / IV 50% ≈ 20.00 HKD, valued now with Black-Scholes (r = q = 0, T = days/365) at 355 / 29 days / IV 25% ≈ 12.61 HKD — selling today −7.39 vs. holding to expiry −15.00 in one chart, plus the first-order attribution (stock / time / vol and the second-order residual) | ✅ |
 | `CLEAR` | Empties the grid; every open panel header also has a `×` that closes just that panel | ✅ |
 
 `Tab` completes the token under the cursor — a symbol used earlier in the session (`70` → `700.HK `, with

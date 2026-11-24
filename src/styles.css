@@ -116,3 +116,10 @@ a { color: var(--tool); }
 .ovme-pnl[data-direction="down"] { color: var(--candle-down); }
 .ovme-pnl[data-direction="flat"] { color: var(--muted); }
 .chart-ovme { height: clamp(160px, 30vh, 380px); }
+/* OVME scenario tabs and the earnings-IV state pair; colors stay on the existing variables. */
+.ovme-tabs { display: flex; gap: 6px; margin-bottom: 6px; }
+.ovme-tab { background: transparent; border: 1px solid var(--border); color: var(--muted); font: inherit; font-size: 11px; letter-spacing: 0.05em; padding: 1px 6px; cursor: pointer; }
+.ovme-tab[aria-selected="true"] { color: var(--amber); border-color: var(--amber); }
+.ovme-states { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+.ovme-state { display: flex; flex-direction: column; gap: 2px; font-size: 11px; letter-spacing: 0.05em; }
+.ovme-premium { font-size: 14px; color: var(--amber); font-variant-numeric: tabular-nums; }

@@ -469,3 +469,64 @@ test("OVME requires a symbol", async ({ page }) => {
   await run(page, "OVME");
   await expect(page.getByTestId("command-error")).toContainText("OVME requires a symbol");
 });
+
+// Scenario 2 (workitem 10082, round 2): the earnings IV collapse. Also pure client-side math — no request.
+test("OVME opens on the protective put and switches to the earnings IV scenario", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 OVME");
+
+  // The accepted scenario stays the default, so the flows above never need a click.
+  await expect(page.getByTestId("ovme-tab-put")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("ovme-put-scenario")).toBeVisible();
+
+  await page.getByTestId("ovme-tab-call").click();
+  await expect(page.getByTestId("ovme-tab-call")).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("ovme-call-scenario")).toBeVisible();
+  await expect(page.getByTestId("ovme-put-scenario")).toHaveCount(0);
+});
+
+test("OVME call scenario answers why the call lost: -7.39 today against -15.00 at expiry", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 OVME");
+  await page.getByTestId("ovme-tab-call").click();
+
+  await expect(page.getByTestId("ovme-call-purchase-state")).toContainText("S 350 · K 350 · 30D · IV 50%");
+  await expect(page.getByTestId("ovme-call-premium-buy")).toContainText("20.00 HKD");
+  await expect(page.getByTestId("ovme-call-premium-now")).toContainText("12.61 HKD");
+  await expect(page.getByTestId("ovme-call-sell-today")).toContainText("-7.39 HKD");
+  await expect(page.getByTestId("ovme-call-hold-expiry")).toContainText("-15.00 HKD");
+  await expect(page.getByTestId("ovme-call-sell-today")).toHaveAttribute("data-direction", "down");
+
+  // First-order attribution: the stock move helped, one day of theta and the halved IV did not.
+  await expect(page.getByTestId("ovme-call-attr-stock")).toHaveText("+2.64 HKD");
+  await expect(page.getByTestId("ovme-call-attr-time")).toHaveText("-0.33 HKD");
+  await expect(page.getByTestId("ovme-call-attr-vol")).toHaveText("-9.98 HKD");
+  await expect(page.getByTestId("ovme-call-attr-residual")).toHaveText("+0.28 HKD");
+
+  // Both lines are drawn in the same chart.
+  await expect(page.getByTestId("ovme-call-chart").locator("canvas").first()).toBeVisible();
+});
+
+test("OVME call scenario follows the stock price and the volatility sliders", async ({ page }) => {
+  await page.goto("./");
+  await run(page, "700 OVME");
+  await page.getByTestId("ovme-tab-call").click();
+
+  await page.getByTestId("ovme-call-spot-slider").fill("380");
+  await expect(page.getByTestId("ovme-call-spot-input")).toHaveValue("380");
+  await expect(page.getByTestId("ovme-call-sell-today")).toContainText("+11.54 HKD");
+  await expect(page.getByTestId("ovme-call-hold-expiry")).toContainText("+10.00 HKD");
+
+  // Back to 355 with the pre-earnings IV: the position is nearly whole again, and the expiry line never moved.
+  await page.getByTestId("ovme-call-spot-input").fill("355");
+  await page.getByTestId("ovme-call-iv-slider").fill("50");
+  await expect(page.getByTestId("ovme-call-premium-now")).toContainText("22.40 HKD");
+  await expect(page.getByTestId("ovme-call-sell-today")).toContainText("+2.40 HKD");
+  await expect(page.getByTestId("ovme-call-hold-expiry")).toContainText("-15.00 HKD");
+
+  // A draft that is not a number leaves the valuation alone; blur shows the value in force again.
+  await page.getByTestId("ovme-call-spot-input").fill("abc");
+  await expect(page.getByTestId("ovme-call-hold-expiry")).toContainText("-15.00 HKD");
+  await page.getByTestId("ovme-call-spot-input").blur();
+  await expect(page.getByTestId("ovme-call-spot-input")).toHaveValue("355");
+});
